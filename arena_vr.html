@@ -1,0 +1,317 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><title>Tide & Flame Arena (VR)</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<script src="https://aframe.io/releases/1.6.0/aframe.min.js"></script>
+<style>
+html,body{margin:0;height:100%;overflow:hidden;background:#0b1624;font-family:system-ui,Segoe UI,sans-serif}
+#ui{position:fixed;inset:0;pointer-events:none;z-index:10;color:#fff}
+.hp{position:absolute;top:12px;width:250px;padding:8px 12px;background:rgba(10,20,40,.72);border-radius:10px;border:2px solid rgba(255,255,255,.25)}
+.hp b{font-size:15px;letter-spacing:.5px}.hp small{float:right;opacity:.85;margin-top:2px}
+.bar{height:12px;background:#222;border-radius:6px;margin-top:6px;overflow:hidden}.bar i{display:block;height:100%;width:100%;background:#3ddc5a;transition:width .4s,background .4s}
+#hpT{left:12px;border-color:#5fb8ff}#hpL{right:12px;border-color:#ff8a3a}
+#bottom{position:absolute;bottom:14px;left:50%;transform:translateX(-50%);text-align:center;width:min(640px,94vw)}
+#msg{background:rgba(10,20,40,.78);padding:9px 14px;border-radius:10px;font-size:16px;margin-bottom:8px;min-height:20px}
+#moves button,#restart{pointer-events:auto;font:bold 15px system-ui,sans-serif;color:#fff;border:2px solid #bfe6ff;border-radius:22px;padding:9px 16px;margin:0 4px;cursor:pointer;background:linear-gradient(#2f8be0,#1b5fb0)}
+#moves button:disabled{opacity:.45;cursor:default}#moves button:not(:disabled):hover{filter:brightness(1.2)}
+#restart{display:none;background:linear-gradient(#ffb03a,#e0701f);border-color:#ffe0b0;margin-top:8px}
+#banner{position:absolute;top:32%;width:100%;text-align:center;font:900 54px system-ui,sans-serif;text-shadow:0 4px 14px #000;display:none}
+#help{position:absolute;top:70px;left:12px;font-size:12px;opacity:.75;text-shadow:0 1px 3px #000}
+#nofx{display:none;position:fixed;inset:0;color:#fff;text-align:center;padding-top:30vh;font-size:20px}
+</style>
+<script>
+if(window.AFRAME){
+const THREE=AFRAME.THREE;
+// --- tween system driven by the A-Frame render loop (keeps working inside WebXR sessions)
+AFRAME.registerSystem('tw',{init(){this.l=[]},tick(t,dt){dt=Math.min(dt||16,50)/1000;
+ for(let i=this.l.length-1;i>=0;i--){const a=this.l[i];a.t+=dt;const u=Math.min(1,a.t/a.d);a.fn(u);if(u>=1){this.l.splice(i,1);a.done&&a.done()}}}});
+AFRAME.registerComponent('face-camera',{init(){this.v=new THREE.Vector3()},tick(){const c=this.el.sceneEl.camera;if(!c)return;c.getWorldPosition(this.v);this.el.object3D.lookAt(this.v)}});
+AFRAME.registerComponent('idle-bob',{schema:{speed:{default:2},amt:{default:.03}},tick(t){this.el.object3D.scale.y=1+Math.sin(t/1000*this.data.speed)*this.data.amt}});
+AFRAME.registerComponent('sway',{schema:{amt:{default:.35},speed:{default:1.6}},tick(t){this.el.object3D.rotation.y=Math.sin(t/1000*this.data.speed)*this.data.amt}});
+AFRAME.registerComponent('flicker',{tick(t){const s=1+Math.sin(t*.025)*.12+Math.sin(t*.061)*.08;this.el.object3D.scale.set(s,1+(s-1)*2.2,s)}});
+// --- stadium: tiered stands, walls, floodlight towers and an instanced cheering crowd
+AFRAME.registerComponent('stadium',{init(){
+ const o=this.el.object3D,std=(c,e)=>new THREE.MeshStandardMaterial({color:c,roughness:.85,emissive:e||0,side:THREE.DoubleSide});
+ const tiers=5,pos=[];
+ for(let i=0;i<tiers;i++){const r=9+i*1.3,h=.8+i*.8;
+  const wall=new THREE.Mesh(new THREE.CylinderGeometry(r,r,h,72,1,true),std(i%2?0x6b7280:0x7c8594));wall.position.y=h/2;o.add(wall);
+  [[0,0xe0701f],[Math.PI,0x2f6fd1]].forEach(([th,col])=>{const ring=new THREE.Mesh(new THREE.RingGeometry(r,r+1.3,64,1,th,Math.PI),std(new THREE.Color(col).offsetHSL(0,0,i*.03)));ring.rotation.x=-Math.PI/2;ring.position.y=h;o.add(ring)});
+  const n=Math.floor(2*Math.PI*(r+.65)/.55);for(let k=0;k<n;k++){const a=k/n*Math.PI*2+i*.13;pos.push({x:Math.cos(a)*(r+.65),z:Math.sin(a)*(r+.65),y:h,p:Math.random()*6,s:.85+Math.random()*.35})}}
+ const R=9+tiers*1.3,back=new THREE.Mesh(new THREE.CylinderGeometry(R,R,5.8,72,1,true),std(0x4b5563));back.position.y=2.9;o.add(back);
+ const rim=new THREE.Mesh(new THREE.TorusGeometry(R,.12,8,96),std(0xffd24a,0x553300));rim.rotation.x=Math.PI/2;rim.position.y=5.8;o.add(rim);
+ const inner=new THREE.Mesh(new THREE.TorusGeometry(9,.08,8,96),std(0xffffff));inner.rotation.x=Math.PI/2;inner.position.y=.8;o.add(inner);
+ for(let k=0;k<4;k++){const a=Math.PI/4+k*Math.PI/2,x=Math.cos(a)*17,z=Math.sin(a)*17;
+  const pole=new THREE.Mesh(new THREE.CylinderGeometry(.18,.25,12,10),std(0x9ca3af));pole.position.set(x,6,z);o.add(pole);
+  const lamp=new THREE.Mesh(new THREE.BoxGeometry(2.4,1.4,.3),new THREE.MeshStandardMaterial({color:0xffffff,emissive:0xfff4cc,emissiveIntensity:1}));
+  lamp.position.set(x,12.4,z);lamp.lookAt(0,0,0);o.add(lamp)}
+ // crowd
+ const N=pos.length;this.pos=pos;
+ this.body=new THREE.InstancedMesh(new THREE.BoxGeometry(.34,.46,.26),new THREE.MeshStandardMaterial({roughness:.8}),N);
+ this.head=new THREE.InstancedMesh(new THREE.SphereGeometry(.13,10,8),new THREE.MeshStandardMaterial({roughness:.7}),N);
+ const shirts=[0xef4444,0x3b82f6,0xf59e0b,0x10b981,0xa855f7,0xf97316,0x06b6d4,0xffffff,0xfacc15],skins=[0xf1c27d,0xe0ac69,0xc68642,0x8d5524,0xffdbac];
+ const cc=new THREE.Color();for(let i=0;i<N;i++){const p=pos[i];
+  cc.set((p.z>0?(Math.random()<.6?0x3b82f6:shirts[i%shirts.length]):(Math.random()<.6?0xf97316:shirts[i%shirts.length])));this.body.setColorAt(i,cc);
+  cc.set(skins[i%skins.length]);this.head.setColorAt(i,cc)}
+ o.add(this.body,this.head);this.m=new THREE.Matrix4();
+},tick(t,dt){const ex=window.excite=Math.max(0,(window.excite||0)-(dt||16)/1000*.5),m=this.m,ts=t/1000;
+ for(let i=0;i<this.pos.length;i++){const p=this.pos[i],b=Math.abs(Math.sin(ts*(4+ex*5)+p.p))*(.03+ex*.28);
+  m.makeScale(p.s,p.s,p.s);m.setPosition(p.x,p.y+.24*p.s+b,p.z);this.body.setMatrixAt(i,m);m.setPosition(p.x,p.y+.6*p.s+b,p.z);this.head.setMatrixAt(i,m)}
+ this.body.instanceMatrix.needsUpdate=this.head.instanceMatrix.needsUpdate=true}});
+}
+</script></head>
+<body>
+<div id="nofx">A-Frame could not be loaded.<br>This arena needs an internet connection (it loads A-Frame from aframe.io).</div>
+<a-scene id="scene" tw renderer="antialias: true; colorManagement: true" cursor="rayOrigin: mouse; fuse: false" raycaster="objects: .clickable; far: 30"
+ fog="type: linear; color: #bfe0ff; near: 30; far: 70" loading-screen="dotsColor: #5fb8ff; backgroundColor: #0b1624">
+ <a-sky color="#8ec9ff"></a-sky>
+ <a-entity light="type: hemisphere; color: #dff0ff; groundColor: #6b5a3a; intensity: 0.55"></a-entity>
+ <a-entity light="type: directional; color: #fff6e0; intensity: 0.9" position="4 10 6"></a-entity>
+ <a-entity light="type: ambient; color: #ffffff; intensity: 0.12"></a-entity>
+ <!-- ground, arena floor & markings -->
+ <a-circle radius="60" rotation="-90 0 0" color="#4d8a3b"></a-circle>
+ <a-cylinder radius="8.9" height="0.2" position="0 0.1 0" color="#d8c28c" segments-radial="72"></a-cylinder>
+ <a-circle radius="7.6" rotation="-90 0 0" position="0 0.205 0" theta-start="0" theta-length="180" color="#e9b77e" segments="64"></a-circle>
+ <a-circle radius="7.6" rotation="-90 0 0" position="0 0.205 0" theta-start="180" theta-length="180" color="#a9cfe6" segments="64"></a-circle>
+ <a-ring radius-inner="7.6" radius-outer="7.8" rotation="-90 0 0" position="0 0.21 0" color="#ffffff" segments-theta="72"></a-ring>
+ <a-ring radius-inner="1.1" radius-outer="1.22" rotation="-90 0 0" position="0 0.21 0" color="#ffffff" segments-theta="48"></a-ring>
+ <a-plane width="15.4" height="0.12" rotation="-90 0 0" position="0 0.21 0" color="#ffffff"></a-plane>
+ <a-entity stadium></a-entity>
+ <!-- scoreboard -->
+ <a-entity position="0 8 -16.2">
+  <a-box width="9" height="3" depth="0.4" color="#14213a"></a-box>
+  <a-box width="9.3" height="3.3" depth="0.3" position="0 0 -0.1" color="#ffd24a"></a-box>
+  <a-text value="TIDE & FLAME ARENA" align="center" width="14" position="0 0.75 0.22" color="#ffd24a"></a-text>
+  <a-text value="SHELLSURGE" align="center" width="11" position="-2.4 -0.35 0.22" color="#6fc4ff"></a-text>
+  <a-text value="vs" align="center" width="9" position="0 -0.35 0.22" color="#ffffff"></a-text>
+  <a-text value="EMBERCLAW" align="center" width="11" position="2.4 -0.35 0.22" color="#ff9a4a"></a-text>
+  <a-cylinder radius="0.15" height="7" position="-3.8 -5 -0.2" color="#6b7280"></a-cylinder>
+  <a-cylinder radius="0.15" height="7" position="3.8 -5 -0.2" color="#6b7280"></a-cylinder>
+ </a-entity>
+
+ <!-- SHELLSURGE: original blue water-type turtle creature -->
+ <a-entity id="turtle" position="-1.5 0.2 2.3">
+  <a-entity id="turtleBody" idle-bob="speed: 2.2; amt: 0.03">
+   <a-sphere radius="0.75" scale="1 0.55 1.1" position="0 0.6 0" color="#1f6fc9" roughness="0.4"></a-sphere>
+   <a-torus radius="0.74" radius-tubular="0.07" rotation="90 0 0" scale="1 1.1 1" position="0 0.5 0" color="#9fd6ff" segments-radial="10" segments-tubular="48"></a-torus>
+   <a-sphere radius="0.24" scale="1 0.3 1" position="0 0.99 0" color="#134d96"></a-sphere>
+   <a-sphere radius="0.2" scale="1 0.3 1" position="0.36 0.91 0.3" rotation="0 0 -25" color="#134d96"></a-sphere>
+   <a-sphere radius="0.2" scale="1 0.3 1" position="-0.36 0.91 0.3" rotation="0 0 25" color="#134d96"></a-sphere>
+   <a-sphere radius="0.2" scale="1 0.3 1" position="0.36 0.91 -0.3" rotation="0 0 -25" color="#134d96"></a-sphere>
+   <a-sphere radius="0.2" scale="1 0.3 1" position="-0.36 0.91 -0.3" rotation="0 0 25" color="#134d96"></a-sphere>
+   <a-sphere radius="0.72" scale="1 0.3 1.08" position="0 0.4 0" color="#f3e3a0"></a-sphere>
+   <a-sphere radius="0.34" position="0 0.78 0.95" color="#5fb8ff"></a-sphere>
+   <a-sphere radius="0.21" scale="1 0.8 1" position="0 0.7 1.2" color="#7fc8ff"></a-sphere>
+   <a-box width="0.2" height="0.03" depth="0.03" position="0 0.63 1.38" color="#0d2a4d"></a-box>
+   <a-sphere radius="0.11" position="0.15 0.9 1.18" color="#ffffff"></a-sphere>
+   <a-sphere radius="0.11" position="-0.15 0.9 1.18" color="#ffffff"></a-sphere>
+   <a-sphere radius="0.055" position="0.16 0.91 1.28" color="#0b1020"></a-sphere>
+   <a-sphere radius="0.055" position="-0.16 0.91 1.28" color="#0b1020"></a-sphere>
+   <a-cone radius-bottom="0.13" radius-top="0.01" height="0.4" position="0 1.15 0.88" rotation="-25 0 0" color="#aeeaff"></a-cone>
+   <a-cone radius-bottom="0.08" radius-top="0.01" height="0.28" position="0.13 1.08 0.84" rotation="-20 0 -30" color="#aeeaff"></a-cone>
+   <a-cone radius-bottom="0.08" radius-top="0.01" height="0.28" position="-0.13 1.08 0.84" rotation="-20 0 30" color="#aeeaff"></a-cone>
+   <a-sphere radius="0.3" scale="1.5 0.45 0.8" position="0.72 0.33 0.5" rotation="0 30 0" color="#5fb8ff"></a-sphere>
+   <a-sphere radius="0.3" scale="1.5 0.45 0.8" position="-0.72 0.33 0.5" rotation="0 -30 0" color="#5fb8ff"></a-sphere>
+   <a-sphere radius="0.26" scale="1.3 0.45 0.8" position="0.62 0.3 -0.55" rotation="0 -30 0" color="#5fb8ff"></a-sphere>
+   <a-sphere radius="0.26" scale="1.3 0.45 0.8" position="-0.62 0.3 -0.55" rotation="0 30 0" color="#5fb8ff"></a-sphere>
+   <a-cone radius-bottom="0.14" radius-top="0.02" height="0.45" position="0 0.42 -0.98" rotation="-100 0 0" color="#5fb8ff"></a-cone>
+  </a-entity>
+  <a-sphere id="shield" radius="1.15" position="0 0.65 0.1" material="color: #9fe6ff; opacity: 0.28; transparent: true; emissive: #3aaaff; emissiveIntensity: 0.4" visible="false"></a-sphere>
+  <a-entity id="barT" position="0 1.75 0" scale="0.8 0.8 0.8" face-camera>
+   <a-plane width="1.95" height="0.95" position="0 0.02 -0.01" color="#0b1624" opacity="0.6"></a-plane>
+   <a-text value="SHELLSURGE (you)" align="center" width="4" position="0 0.3 0.01" color="#bfe6ff"></a-text>
+   <a-plane width="1.7" height="0.26" color="#111111" opacity="0.85"></a-plane>
+   <a-plane class="fill" width="1.6" height="0.16" position="0 0 0.01" color="#3ddc5a" shader="flat"></a-plane>
+   <a-text class="hptxt" value="HP 100 / 100" align="center" width="3" position="0 -0.3 0.01" color="#ffffff"></a-text>
+  </a-entity>
+ </a-entity>
+
+ <!-- EMBERCLAW: original orange fire-type lizard creature -->
+ <a-entity id="lizard" position="1.3 0.2 -2.3">
+  <a-entity id="lizardBody" idle-bob="speed: 2.8; amt: 0.035">
+   <a-sphere radius="0.5" scale="0.9 1.2 0.85" position="0 1.0 0" color="#f07a1a"></a-sphere>
+   <a-sphere radius="0.42" scale="0.8 1.05 0.6" position="0 0.95 0.18" color="#ffd27a"></a-sphere>
+   <a-sphere radius="0.36" position="0 1.75 0.12" color="#f07a1a"></a-sphere>
+   <a-sphere radius="0.23" scale="1 0.75 1.35" position="0 1.66 0.45" color="#f58a2c"></a-sphere>
+   <a-sphere radius="0.03" position="0.07 1.72 0.75" color="#3a1a08"></a-sphere>
+   <a-sphere radius="0.03" position="-0.07 1.72 0.75" color="#3a1a08"></a-sphere>
+   <a-box width="0.3" height="0.025" depth="0.2" position="0 1.57 0.55" color="#7a2a08"></a-box>
+   <a-sphere radius="0.1" position="0.17 1.86 0.38" color="#ffffff"></a-sphere>
+   <a-sphere radius="0.1" position="-0.17 1.86 0.38" color="#ffffff"></a-sphere>
+   <a-sphere radius="0.065" position="0.18 1.87 0.45" color="#ffd21f"></a-sphere>
+   <a-sphere radius="0.065" position="-0.18 1.87 0.45" color="#ffd21f"></a-sphere>
+   <a-sphere radius="0.05" scale="0.35 1 1" position="0.18 1.87 0.5" color="#120800"></a-sphere>
+   <a-sphere radius="0.05" scale="0.35 1 1" position="-0.18 1.87 0.5" color="#120800"></a-sphere>
+   <a-cone radius-bottom="0.07" radius-top="0.005" height="0.3" position="0.2 2.07 0" rotation="-30 0 -20" color="#5a2a10"></a-cone>
+   <a-cone radius-bottom="0.07" radius-top="0.005" height="0.3" position="-0.2 2.07 0" rotation="-30 0 20" color="#5a2a10"></a-cone>
+   <a-cone radius-bottom="0.08" radius-top="0.005" height="0.22" position="0 1.5 -0.35" rotation="-60 0 0" color="#c9400f"></a-cone>
+   <a-cone radius-bottom="0.08" radius-top="0.005" height="0.22" position="0 1.2 -0.45" rotation="-80 0 0" color="#c9400f"></a-cone>
+   <a-cone radius-bottom="0.08" radius-top="0.005" height="0.22" position="0 0.9 -0.45" rotation="-95 0 0" color="#c9400f"></a-cone>
+   <a-sphere radius="0.14" scale="1 2.3 1" position="0.5 1.08 0.2" rotation="-45 0 25" color="#f07a1a"></a-sphere>
+   <a-sphere radius="0.14" scale="1 2.3 1" position="-0.5 1.08 0.2" rotation="-45 0 -25" color="#f07a1a"></a-sphere>
+   <a-cone radius-bottom="0.035" radius-top="0.003" height="0.14" position="0.6 0.92 0.47" rotation="80 0 0" color="#fff4e0"></a-cone>
+   <a-cone radius-bottom="0.035" radius-top="0.003" height="0.14" position="0.52 0.92 0.49" rotation="80 0 0" color="#fff4e0"></a-cone>
+   <a-cone radius-bottom="0.035" radius-top="0.003" height="0.14" position="-0.6 0.92 0.47" rotation="80 0 0" color="#fff4e0"></a-cone>
+   <a-cone radius-bottom="0.035" radius-top="0.003" height="0.14" position="-0.52 0.92 0.49" rotation="80 0 0" color="#fff4e0"></a-cone>
+   <a-sphere radius="0.26" scale="1 1.2 1.2" position="0.35 0.45 0" color="#e0651a"></a-sphere>
+   <a-sphere radius="0.26" scale="1 1.2 1.2" position="-0.35 0.45 0" color="#e0651a"></a-sphere>
+   <a-sphere radius="0.2" scale="1 0.4 1.5" position="0.36 0.07 0.15" color="#e0651a"></a-sphere>
+   <a-sphere radius="0.2" scale="1 0.4 1.5" position="-0.36 0.07 0.15" color="#e0651a"></a-sphere>
+   <a-entity id="lizTail" position="0 0.65 -0.4" sway>
+    <a-sphere radius="0.28" position="0 0 -0.15" color="#f07a1a"></a-sphere>
+    <a-sphere radius="0.22" position="0 -0.08 -0.55" color="#f07a1a"></a-sphere>
+    <a-sphere radius="0.17" position="0 -0.06 -0.9" color="#f07a1a"></a-sphere>
+    <a-sphere radius="0.13" position="0 0.06 -1.18" color="#f07a1a"></a-sphere>
+    <a-sphere radius="0.1" position="0 0.28 -1.36" color="#f07a1a"></a-sphere>
+    <a-entity position="0 0.46 -1.42" flicker>
+     <a-cone radius-bottom="0.15" radius-top="0.0" height="0.5" position="0 0.2 0" material="color: #ff5a1f; emissive: #ff3300; emissiveIntensity: 1; opacity: 0.9; transparent: true"></a-cone>
+     <a-cone radius-bottom="0.08" radius-top="0.0" height="0.3" position="0 0.13 0" material="color: #ffe14d; emissive: #ffcc00; emissiveIntensity: 1"></a-cone>
+    </a-entity>
+   </a-entity>
+  </a-entity>
+  <a-entity id="barL" position="0 2.65 0" face-camera>
+   <a-plane width="1.95" height="0.95" position="0 0.02 -0.01" color="#0b1624" opacity="0.6"></a-plane>
+   <a-text value="EMBERCLAW" align="center" width="4" position="0 0.3 0.01" color="#ffd0a8"></a-text>
+   <a-plane width="1.7" height="0.26" color="#111111" opacity="0.85"></a-plane>
+   <a-plane class="fill" width="1.6" height="0.16" position="0 0 0.01" color="#3ddc5a" shader="flat"></a-plane>
+   <a-text class="hptxt" value="HP 130 / 130" align="center" width="3" position="0 -0.3 0.01" color="#ffffff"></a-text>
+  </a-entity>
+ </a-entity>
+
+ <!-- big win/lose banner -->
+ <a-entity id="banner3d" position="0 3.1 0.3" face-camera visible="false">
+  <a-plane width="4.6" height="1.1" color="#0b1624" opacity="0.8"></a-plane>
+  <a-text id="bannerTxt" value="" align="center" width="9" position="0 0 0.02" color="#ffd24a"></a-text>
+ </a-entity>
+
+ <!-- in-scene control panel (mouse or VR laser pointers) -->
+ <a-entity id="panel" position="2.35 0.95 3.7" scale="0.7 0.7 0.7">
+  <a-plane width="1.5" height="1.62" color="#0e1d33" opacity="0.88"></a-plane>
+  <a-plane width="1.54" height="0.05" position="0 0.81 0.001" color="#5fb8ff" shader="flat"></a-plane>
+  <a-text value="SHELLSURGE - choose a move" align="center" width="2.2" position="0 0.66 0.01" color="#bfe6ff"></a-text>
+  <a-text id="panelMsg" value="" align="center" width="1.8" wrap-count="34" baseline="center" position="0 0.47 0.01" color="#ffffff"></a-text>
+ </a-entity>
+
+ <!-- camera rig with VR controllers -->
+ <a-entity id="rig" position="0 0 6.4">
+  <a-entity id="cam" camera look-controls="pointerLockEnabled: false" wasd-controls="acceleration: 25" position="0 1.6 0"></a-entity>
+  <a-entity laser-controls="hand: right" raycaster="objects: .clickable; far: 30; lineColor: #9fe6ff"></a-entity>
+  <a-entity laser-controls="hand: left" raycaster="objects: .clickable; far: 30; lineColor: #ffb07a"></a-entity>
+ </a-entity>
+</a-scene>
+
+<div id="ui">
+ <div class="hp" id="hpT"><b>SHELLSURGE</b> <small id="hpTn">100 / 100</small><div class="bar"><i id="hpTb"></i></div></div>
+ <div class="hp" id="hpL"><b>EMBERCLAW</b> <small id="hpLn">130 / 130</small><div class="bar"><i id="hpLb"></i></div></div>
+ <div id="help">Drag to look &middot; WASD to walk &middot; click moves here or on the in-arena panel &middot; VR: point & pull trigger</div>
+ <div id="banner"></div>
+ <div id="bottom"><div id="msg">Loading arena...</div><div id="moves"></div><button id="restart">&#8635; Restart battle</button></div>
+</div>
+
+<script>
+if(!window.AFRAME){document.getElementById('nofx').style.display='block';document.getElementById('ui').style.display='none'}
+else{
+const THREE=AFRAME.THREE,$=s=>document.querySelector(s),scene=$('#scene');
+const Q=new URLSearchParams(location.search),AUTO=Q.has('auto');
+const MT=[{n:'Water Jet',type:'water',pow:20,acc:.85,fx:'jet',d:'Water - super effective on fire'},
+ {n:'Shell Bash',type:'normal',pow:18,acc:1,fx:'bash',d:'Normal - never misses'},
+ {n:'Bubble Shield',type:'shield',fx:'shield',d:'Blocks 60% of next hit, heals 8'}];
+const ML=[{n:'Flame Burst',type:'fire',pow:32,acc:.9,fx:'flame'},{n:'Tail Swipe',type:'normal',pow:20,acc:.95,fx:'tail'},{n:'Blaze Claw',type:'normal',pow:28,acc:.75,fx:'claw'}];
+const NAME={t:'Shellsurge',l:'Emberclaw'},S={hp:{t:100,l:130},max:{t:100,l:130},shield:false,busy:true,over:false};
+let E={},HOME={},BTN=[],rb3=null;
+const anim=(d,fn)=>new Promise(r=>scene.systems.tw.l.push({t:0,d,fn,done:r})),wait=d=>anim(d,()=>{});
+const ease=u=>u<.5?2*u*u:1-Math.pow(-2*u+2,2)/2,V=(a,b,c)=>new THREE.Vector3(a,b,c);
+function wp(el,x,y,z){el.object3D.updateMatrixWorld(true);return el.object3D.localToWorld(V(x,y,z))}
+function ball(r,col,em,op){const m=new THREE.Mesh(new THREE.SphereGeometry(r,16,12),new THREE.MeshStandardMaterial({color:col,emissive:em||0,emissiveIntensity:1,transparent:true,opacity:op==null?1:op}));scene.object3D.add(m);return m}
+function kill(m){scene.object3D.remove(m);m.geometry&&m.geometry.dispose();m.material&&m.material.dispose()}
+function setMsg(s){$('#msg').textContent=s;$('#panelMsg').setAttribute('value',s)}
+function hpColor(r){return r>.5?'#3ddc5a':r>.2?'#ffd21f':'#ff4040'}
+function updateHP(){[['t','#barT','#hpTn','#hpTb'],['l','#barL','#hpLn','#hpLb']].forEach(([k,b,n,bb])=>{const r=S.hp[k]/S.max[k],bar=$(b);
+ const f=bar.querySelector('.fill');f.setAttribute('scale',`${Math.max(r,.001)} 1 1`);f.setAttribute('position',`${-.8*(1-r)} 0 0.01`);f.setAttribute('color',hpColor(r));
+ bar.querySelector('.hptxt').setAttribute('value',`HP ${S.hp[k]} / ${S.max[k]}`);$(n).textContent=`${S.hp[k]} / ${S.max[k]}`;$(bb).style.width=r*100+'%';$(bb).style.background=hpColor(r)})}
+function setButtons(on){BTN.forEach(b=>{b.html.disabled=!on;b.on=on;b.box.setAttribute('color',on?'#1f6fc9':'#3a4454');b.box.classList.toggle('clickable',on)})}
+function floatText(k,txt,col){const p=wp(E[k],0,2.2,0),t=document.createElement('a-text');
+ t.setAttribute('value',txt);t.setAttribute('align','center');t.setAttribute('width','6');t.setAttribute('color',col);t.setAttribute('position',`${p.x} ${p.y} ${p.z}`);t.setAttribute('face-camera','');
+ t.setAttribute('animation',`property: position; to: ${p.x} ${p.y+1.1} ${p.z}; dur: 1200; easing: easeOutQuad`);t.setAttribute('animation__f','property: text.opacity; from: 1; to: 0; dur: 1200; easing: easeInQuad');
+ scene.appendChild(t);setTimeout(()=>t.remove(),1300)}
+function splash(p,col,em,n=14,spd=1.6){const ps=[];for(let i=0;i<n;i++){const m=ball(.05+Math.random()*.06,col,em);m.position.copy(p);m.userData.v=V(Math.random()-.5,Math.random()*.8+.1,Math.random()-.5).normalize().multiplyScalar(spd*(.6+Math.random()*.6));ps.push(m)}
+ return anim(.5,u=>ps.forEach(m=>{m.position.addScaledVector(m.userData.v,.016);m.userData.v.y-=.06;m.material.opacity=1-u;if(u>=1)kill(m)}))}
+function flash(k,on){E[k+'b'].object3D.traverse(o=>{if(o.isMesh&&o.material&&o.material.emissive){if(!o.userData.em){o.userData.em=o.material.emissive.clone();o.userData.ei=o.material.emissiveIntensity}
+ if(on){o.material.emissive.set(0xff2a2a);o.material.emissiveIntensity=.75}else{o.material.emissive.copy(o.userData.em);o.material.emissiveIntensity=o.userData.ei}}})}
+async function shake(k){flash(k,true);const b=E[k+'b'].object3D;await anim(.55,u=>{b.position.x=Math.sin(u*45)*.14*(1-u);if(u>.3)flash(k,Math.sin(u*40)>0)});b.position.x=0;flash(k,false)}
+async function dodge(k){const b=E[k+'b'].object3D;await anim(.5,u=>{b.position.x=Math.sin(u*Math.PI)*.8;b.position.y=Math.sin(u*Math.PI)*.25});b.position.set(0,0,0)}
+function lungeTo(k,frac,dur,hop){const o=E[k].object3D,from=HOME[k].clone(),to=V().lerpVectors(HOME[k],HOME[k=='t'?'l':'t'],frac);
+ return anim(dur,u=>{o.position.lerpVectors(from,to,ease(u));if(hop)o.position.y=from.y+Math.sin(u*Math.PI)*hop})}
+function goHome(k,dur){const o=E[k].object3D,from=o.position.clone();return anim(dur,u=>o.position.lerpVectors(from,HOME[k],ease(u)))}
+const FX={
+ async jet(hit){const o=wp(E.t,0,.72,1.4),tg=hit?wp(E.l,0,1.2,.2):wp(E.l,1.6,1.3,-.8),ps=[];
+  for(let i=0;i<9;i++){const m=ball(.1+(i%3)*.03,0x4fc3ff,0x1b6fd1,.9);m.visible=false;ps.push(m)}
+  await anim(.95,u=>ps.forEach((m,i)=>{const v=(u*.95-i*.055)/.45;m.visible=v>0&&v<1;if(m.visible){m.position.lerpVectors(o,tg,v);m.position.y+=Math.sin(v*Math.PI)*.35+Math.sin(v*20+i)*.04}}));
+  ps.forEach(kill);if(hit)splash(tg,0x7fd6ff,0x1b6fd1,18)},
+ async bash(hit){const b=E.tb.object3D;await anim(.3,u=>b.position.y=Math.sin(u*Math.PI)*.2);
+  await Promise.all([lungeTo('t',hit?.62:.45,.4,.3),anim(.4,u=>b.rotation.y=u*Math.PI*4)]);b.rotation.y=0;
+  if(hit)splash(wp(E.l,0,1,.3),0xfff1b0,0xaa8800,10,1.2);return ()=>goHome('t',.45)},
+ async flame(hit){const lb=E.lb.object3D;await anim(.35,u=>{const s=1+Math.sin(u*Math.PI)*.12;lb.scale.x=lb.scale.z=s});lb.scale.x=lb.scale.z=1;
+  const o=wp(E.l,0,1.66,.75),tg=hit?wp(E.t,0,.7,.2):wp(E.t,-1.6,.9,.9),ps=[],L=new THREE.PointLight(0xff7a2a,2.2,4,2);scene.object3D.add(L);
+  for(let i=0;i<3;i++){const m=ball(.22-i*.03,0xff6a1f,0xff3300,.95),core=ball(.11-i*.015,0xffe14d,0xffcc00);scene.object3D.remove(core);m.add(core);m.visible=false;ps.push(m)}
+  await anim(1,u=>ps.forEach((m,i)=>{const v=(u-i*.13)/.6;m.visible=v>0&&v<1;if(m.visible){m.position.lerpVectors(o,tg,v);m.position.y+=Math.sin(v*Math.PI)*.6;m.scale.setScalar(.7+v*.6);m.rotation.y+=.2;if(i==0)L.position.copy(m.position)}}));
+  ps.forEach(kill);scene.object3D.remove(L);if(hit)splash(tg,0xff8a2a,0xff4400,20,2)},
+ async tail(hit){await lungeTo('l',hit?.6:.45,.4);const b=E.lb.object3D;await anim(.4,u=>b.rotation.y=u*Math.PI*2);b.rotation.y=0;
+  if(hit)splash(wp(E.t,0,.8,.2),0xffd27a,0xaa5500,10,1.2);return ()=>goHome('l',.45)},
+ async claw(hit){await lungeTo('l',hit?.58:.45,.5,.8);const cam=V();scene.camera.getWorldPosition(cam);const c=hit?wp(E.t,0,.8,0):wp(E.t,-1,1,.5),sl=[];
+  for(let i=0;i<3;i++){const m=new THREE.Mesh(new THREE.BoxGeometry(1.3,.05,.05),new THREE.MeshStandardMaterial({color:0xff4020,emissive:0xff2200,transparent:true}));
+   m.position.copy(c);m.lookAt(cam);m.rotateZ(-.8);m.translateY((i-1)*.22);m.scale.x=.01;scene.object3D.add(m);sl.push(m)}
+  await anim(.35,u=>sl.forEach(m=>{m.scale.x=Math.min(1,u*3);m.material.opacity=1-u}));sl.forEach(kill);return ()=>goHome('l',.5)}
+};
+async function shieldUp(){const s=E.sh;s.object3D.visible=true;const m=s.getObject3D('mesh').material;m.opacity=.28;
+ await anim(.6,u=>s.object3D.scale.setScalar(Math.max(.01,1+Math.sin(u*Math.PI*2.5)*(1-u)*.25-(1-u)*(1-u)*.8)));s.object3D.scale.setScalar(1)}
+function shieldPop(){const s=E.sh,m=s.getObject3D('mesh').material;anim(.4,u=>{s.object3D.scale.setScalar(1+u*.5);m.opacity=.28*(1-u);if(u>=1){s.object3D.visible=false;s.object3D.scale.setScalar(1);m.opacity=.28}})}
+async function doMove(a,mv){const d=a=='t'?'l':'t';setMsg(`${NAME[a]} used ${mv.n}!`);
+ if(mv.fx=='shield'){await shieldUp();S.shield=true;const h=Math.min(8,S.max.t-S.hp.t);S.hp.t+=h;updateHP();if(h)floatText('t','+'+h,'#7dff9a');
+  setMsg(`${NAME[a]} is wrapped in a bubble shield${h?' and recovered '+h+' HP':''}!`);await wait(.6);return}
+ const hit=Math.random()<mv.acc,back=await FX[mv.fx](hit);
+ if(!hit){setMsg(`${NAME[a]} used ${mv.n}... but ${NAME[d]} dodged it!`);await Promise.all([dodge(d),back?back():0]);return}
+ const eff=mv.type=='water'&&d=='l'?1.5:mv.type=='fire'&&d=='t'?.5:1,crit=Math.random()<1/12;
+ let dmg=Math.max(1,Math.round(mv.pow*eff*(.85+Math.random()*.3)*(crit?1.3:1))),blk=false;
+ if(d=='t'&&S.shield){dmg=Math.max(1,Math.round(dmg*.4));S.shield=false;shieldPop();blk=true}
+ S.hp[d]=Math.max(0,S.hp[d]-dmg);updateHP();window.excite=1;floatText(d,'-'+dmg,crit?'#ffe14d':'#ff6a6a');
+ const notes=[eff>1?"It's super effective!":eff<1?"It's not very effective...":'',crit?'A critical hit!':'',blk?'The bubble shield absorbed most of it!':''].filter(Boolean).join(' ');
+ setMsg(`${NAME[a]}'s ${mv.n} hit for ${dmg} damage! ${notes}`);
+ await shake(d);if(back)await back();
+ if(S.hp[d]<=0)await endGame(a)}
+function pickAI(){const r=Math.random(),low=S.hp.l<45;return low?(r<.5?ML[2]:r<.85?ML[1]:ML[0]):(r<.45?ML[1]:r<.8?ML[2]:ML[0])}
+async function playerMove(i){if(S.busy||S.over)return;S.busy=true;setButtons(false);
+ await doMove('t',MT[i]);if(S.over)return;await wait(.9);
+ setMsg('Emberclaw is deciding...');await wait(.6);await doMove('l',pickAI());if(S.over)return;await wait(.4);
+ S.busy=false;setButtons(true);setMsg('Your turn! Choose a move for Shellsurge.');if(AUTO)setTimeout(()=>playerMove(Math.floor(Math.random()*3)),900)}
+async function endGame(w){S.over=true;const l=w=='t'?'l':'t',b=E[l+'b'].object3D,side=l=='t'?1:-1;
+ setMsg(`${NAME[l]} fainted!`);await anim(.9,u=>{b.rotation.z=side*ease(u)*Math.PI/2;b.position.y=-ease(u)*.15});
+ const o=E[w].object3D,y0=o.position.y;window.excite=1;await anim(1.1,u=>o.position.y=y0+Math.abs(Math.sin(u*Math.PI*2))*.5);o.position.y=y0;
+ const win=w=='t',txt=win?'YOU WIN!':'YOU LOSE...';
+ $('#banner').textContent=txt;$('#banner').style.color=win?'#ffd24a':'#ff7a5a';$('#banner').style.display='block';
+ $('#bannerTxt').setAttribute('value',txt);$('#bannerTxt').setAttribute('color',win?'#ffd24a':'#ff7a5a');$('#banner3d').setAttribute('visible',scene.is('vr-mode'));$('#moves').style.display='none';
+ setMsg(win?'Shellsurge is victorious! The crowd goes wild!':'Emberclaw wins this round. Try again!');
+ $('#restart').style.display='inline-block';rb3.setAttribute('visible',true);rb3.classList.add('clickable');
+ BTN.forEach(b=>b.box.setAttribute('visible',false));if(AUTO)setTimeout(restart,4000)}
+function restart(){S.hp.t=S.max.t;S.hp.l=S.max.l;S.shield=false;S.over=false;S.busy=false;E.sh.object3D.visible=false;
+ ['t','l'].forEach(k=>{E[k].object3D.position.copy(HOME[k]);const b=E[k+'b'].object3D;b.position.set(0,0,0);b.rotation.set(0,0,0);flash(k,false)});
+ $('#banner').style.display='none';$('#banner3d').setAttribute('visible',false);$('#moves').style.display='';$('#restart').style.display='none';rb3.setAttribute('visible',false);rb3.classList.remove('clickable');
+ BTN.forEach(b=>b.box.setAttribute('visible',true));updateHP();setButtons(true);setMsg('A new battle begins! Choose a move for Shellsurge.');
+ if(AUTO)setTimeout(()=>playerMove(Math.floor(Math.random()*3)),1200)}
+function mkBtn(y,label,sub,col,cb){const box=document.createElement('a-box');
+ box.setAttribute('width','1.26');box.setAttribute('height','0.26');box.setAttribute('depth','0.05');box.setAttribute('position',`0 ${y} 0.03`);box.setAttribute('color',col);box.classList.add('clickable');
+ const t=document.createElement('a-text');t.setAttribute('value',label);t.setAttribute('align','center');t.setAttribute('width','2.4');t.setAttribute('position','0 0.035 0.03');box.appendChild(t);
+ if(sub){const s=document.createElement('a-text');s.setAttribute('value',sub);s.setAttribute('align','center');s.setAttribute('width','1.25');s.setAttribute('color','#cfe8ff');s.setAttribute('position','0 -0.07 0.03');box.appendChild(s)}
+ box.addEventListener('mouseenter',()=>{if(box.classList.contains('clickable'))box.object3D.scale.set(1.06,1.1,1)});box.addEventListener('mouseleave',()=>box.object3D.scale.set(1,1,1));
+ box.addEventListener('click',()=>{if(box.classList.contains('clickable'))cb()});$('#panel').appendChild(box);return box}
+function init(){E={t:$('#turtle'),l:$('#lizard'),tb:$('#turtleBody'),lb:$('#lizardBody'),sh:$('#shield')};
+ HOME={t:E.t.object3D.position.clone(),l:E.l.object3D.position.clone()};
+ E.t.object3D.lookAt(HOME.l.x,HOME.t.y,HOME.l.z);$('#panel').object3D.lookAt(0,1.6,6.4);E.l.object3D.lookAt(HOME.t.x,HOME.l.y,HOME.t.z);
+ MT.forEach((m,i)=>{const h=document.createElement('button');h.textContent=m.n;h.title=m.d;h.onclick=()=>playerMove(i);$('#moves').appendChild(h);
+  BTN.push({html:h,box:mkBtn(.1-i*.33,m.n.toUpperCase(),m.d,'#1f6fc9',()=>playerMove(i))})});
+ rb3=mkBtn(-.33,'RESTART BATTLE','','#e0701f',restart);rb3.setAttribute('visible',false);rb3.classList.remove('clickable');
+ $('#restart').onclick=restart;
+ const lc=$('#cam').components['look-controls'];if(lc&&lc.pitchObject)lc.pitchObject.rotation.x=-.2;
+ updateHP();S.busy=false;setButtons(true);setMsg('A wild Emberclaw appears! Choose a move for Shellsurge.');
+ if(AUTO)setTimeout(()=>playerMove(0),1000)}
+scene.addEventListener('enter-vr',()=>{$('#ui').style.display='none';$('#banner3d').setAttribute('visible',S.over)});scene.addEventListener('exit-vr',()=>{$('#ui').style.display='';$('#banner3d').setAttribute('visible',false)});
+if(scene.hasLoaded)init();else scene.addEventListener('loaded',init);
+}
+</script></body></html>
