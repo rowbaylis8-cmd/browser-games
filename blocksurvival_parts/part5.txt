@@ -1,0 +1,176 @@
+  {id:'sand',name:'Sand pile',ic:()=>icon('sand')},{id:'vil',name:'Villager',ic:()=>faceIcon(T.vface)},{id:'zomb',name:'Zombie spawn',ic:()=>faceIcon(T.zface)},{id:'hut',name:'Starter hut',ic:hutIcon}];
+const TIPS={build:b=>`Click to place ${B[b].name}. Pick other blocks at the bottom.`,erase:()=>'Click a block, tree, rock or spawn point to remove it.',
+  tree:()=>'Click the ground to plant a tree. Players chop it for logs and it grows back.',rock:()=>'Click the ground to add a rock. Players mine it for stone.',
+  sand:()=>'Click the ground to add a sand pile. Players dig it to make glass.',vil:()=>'Click the flat ground to add a villager (up to 12). Click one to remove it.',
+  zomb:()=>'Click the ground where zombies climb out at night (up to 16). None = they come from the island edges.',hut:()=>'Click the ground to place a ready-made shelter with walls, roof and a door.'};
+const toolBtns={},palSlots={};
+for(const t of TOOLS){const b=mk('button',{class:'tbtn','data-tool':t.id,onclick:()=>edSetTool(t.id)},t.ic(),t.name);toolBtns[t.id]=b;$('edtools').appendChild(b);}
+EPAL.forEach((type,i)=>{const s=mk('div',{class:'slot',title:B[type].name,'data-block':type,onclick:()=>edPick(type)});if(KEYS[i])s.appendChild(mk('b',{text:KEYS[i]}));s.appendChild(itemIcon(type));palSlots[type]=s;$('edbar').appendChild(s);});
+$('edbrush').querySelectorAll('button').forEach(b=>b.onclick=()=>{edBrush=+b.dataset.b;edSyncButtons();});
+function edSyncButtons(){for(const id in toolBtns)toolBtns[id].classList.toggle('on',id===edTool);for(const t in palSlots)palSlots[t].classList.toggle('sel',t===edBlock&&edTool==='build');
+  $('edbrush').querySelectorAll('button').forEach(b=>b.classList.toggle('on',+b.dataset.b===edBrush));
+  $('edtip').innerHTML='';$('edtip').append(TIPS[edTool](edBlock),mk('small',{text:'Click: use tool \u00b7 Right-click: erase \u00b7 Drag: turn \u00b7 Wheel: zoom \u00b7 WASD: move \u00b7 Ctrl+Z: undo'}));
+  $('edblk').textContent=edTool==='build'?B[edBlock].name+(edBrush===3&&edBlock!=='door'?' (3 x 3 brush)':''):'';
+  $('ednight').textContent=edNight?'Day view':'Night view';}
+function edSetTool(id){edTool=id;edSyncButtons();}
+function edPick(type){edBlock=type;edTool='build';edSyncButtons();}
+$('edname').addEventListener('input',()=>{if(!ED)return;ED.name=$('edname').value;ED.dirty=true;edUpdateStat();});
+$('edundo').onclick=()=>edUndo();$('edredo').onclick=()=>edRedo();
+$('ednight').onclick=()=>{edNight=!edNight;edSyncButtons();};
+$('edfill').onclick=()=>edFill();$('edclear').onclick=()=>edClear();
+$('edsetbtn').onclick=$('edsetmin').onclick=()=>{$('edright').classList.toggle('min');$('edsetmin').textContent=$('edright').classList.contains('min')?'Show':'Hide';};
+$('edtest').onclick=()=>edTest();$('edsave').onclick=()=>edSave();$('edshare').onclick=()=>{edTakeName();showExport(edToLevel(ED));};$('edmenu').onclick=()=>edLeave();
+$('edhelp').onclick=()=>openModal(mk('h2',{text:'How to make a level'}),mk('ul',{style:'margin:0 0 8px;padding-left:20px;line-height:1.5;font-size:15px'},
+  mk('li',{text:'Pick a block at the bottom and click to build. Right-click (or the Erase tool) takes things away. Brush 3 x 3 builds faster.'}),
+  mk('li',{text:'Trees, rocks and sand piles are things players can gather. They grow back every morning.'}),
+  mk('li',{text:'Villager: where a villager starts. Zombie spawn: where zombies climb out at night.'}),
+  mk('li',{text:'Villagers and zombies walk on the flat ground level. Blocks on top of it act as walls.'}),
+  mk('li',{text:'Starter hut: a ready shelter. When a shelter is finished, its floor glows.'}),
+  mk('li',{text:'Settings: island size, how many nights to win, day length, zombies and starting items.'}),
+  mk('li',{text:'Test play tries your level right away. Save keeps it in My Levels. Share makes a code or file for friends.'})),
+  mk('div',{class:'mfoot'},mk('span'),sb('c-green','Got it!',closeModal)));
+function edRenderSettings(){const c=$('edset');c.innerHTML='';const S=ED.set;
+  const seg=(opts,cur,fn)=>mk('div',{class:'seg'},opts.map(([v,t])=>mk('button',{text:t,class:v===cur?'on':'',onclick:()=>{fn(v);edRenderSettings();}})));
+  const summary=mk('div',{style:'font-size:11.5px;color:#d6def0;margin-top:3px'});
+  const sumTxt=()=>{const q=n=>clamp(S.zombies+S.more*(n-1),0,24);summary.textContent=S.nights>1?`Night 1: ${plural(q(1),'zombie')}. Night ${S.nights}: ${plural(q(S.nights),'zombie')}.`:`Night 1: ${plural(q(1),'zombie')}.`;};
+  const range=(label,min,max,val,fn,id)=>{const o=mk('output',{text:String(val)}),r=mk('input',{type:'range',min:String(min),max:String(max),step:'1',id});r.value=val;
+    r.addEventListener('input',()=>{o.textContent=r.value;fn(+r.value);ED.dirty=true;sumTxt();edUpdateStat();});return mk('div',{class:'srow'},mk('span',{text:label,style:'width:112px;white-space:nowrap;font-size:12.5px'}),r,o);};
+  c.append(mk('div',{class:'sec',text:'Island size (rebuilds the ground)'}),seg(Object.keys(SIZES).map(k=>[k,SIZES[k].label]),ED.size,v=>edResize(v)),
+    mk('div',{class:'sec',text:'To win'}),range('Survive nights',1,10,S.nights,v=>S.nights=v,'setnights'),
+    mk('div',{class:'sec',text:'Day length'}),seg(Object.keys(DAYS).map(k=>[k,DAYS[k].label]),S.day,v=>{S.day=v;ED.dirty=true;applyLevel(edToLevel(ED));}),
+    mk('div',{class:'sec',text:'Zombies'}),seg(Object.keys(DIFF).map(k=>[k,DIFF[k].label]),S.diff,v=>{S.diff=v;ED.dirty=true;}),
+    range('On night 1',0,15,S.zombies,v=>S.zombies=v,'setzombies'),range('Extra each night',0,4,S.more,v=>S.more=v,'setmore'),summary,
+    mk('div',{class:'sec',text:'Starting items'}),
+    mk('div',{class:'invg'},INV_IDS.map(id=>{const inp=mk('input',{type:'number',min:'0',max:'99','data-item':id});inp.value=ED.inv[id]||0;
+      inp.addEventListener('input',()=>{const n=clamp(Math.round(+inp.value)||0,0,99);if(n)ED.inv[id]=n;else delete ED.inv[id];ED.dirty=true;edUpdateStat();});
+      return mk('label',{title:INAME[id]},itemIcon(id),INAME[id].replace('Roof Tiles','Roof'),inp);})));
+  sumTxt();}
+function edUpdateStat(){if(!ED)return;const c=ED.sites.reduce((a,s)=>(a[s[0]]++,a),[0,0,0]),st=$('edstat');st.innerHTML='';
+  st.append(mk('div',{text:`${ED.blocks.size} blocks, ${plural(c[0],'tree')}, ${plural(c[1],'rock')}, ${plural(c[2],'sand pile')}`}),
+    mk('div',{text:`${plural(ED.vil.length,'villager')}, ${plural(ED.zsp.length,'zombie spawn')}`+(ED.zsp.length?'':' (edges)')}),
+    regions.length>1?mk('b',{text:'Shelter check: a safe shelter is ready!'}):mk('div',{text:'Shelter check: no finished shelter yet.'}),
+    mk('div',{text:ED.dirty?'Not saved yet.':(ED.id?'Saved in My Levels.':''),style:'color:'+(ED.dirty?'#ffcf7a':'#9dff8a')}));
+  $('edundo').disabled=!undoS.length;$('edredo').disabled=!redoS.length;}
+function openEditor(E){closeModal();
+  if(E){ED=E;undoS=[];redoS=[];edCam=null;}
+  if(!ED)ED=newLevelED('medium');
+  mode='edit';down=null;hover=null;villagers=[];zombies=[];fx=[];gameOver=false;won=false;Tc=null;bannerT=null;
+  edRebuild(true);
+  if(edCam)Object.assign(cam,{yaw:edCam.yaw,pitch:edCam.pitch,dist:edCam.dist,target:edCam.target.slice()});
+  else Object.assign(cam,{yaw:-0.62,pitch:.82,dist:SIZES[ED.size].dist+9,target:[CX,0,CZ]});
+  $('edname').value=ED.name;edRenderSettings();edSyncButtons();setUI();edUpdateStat();}
+function edRebuild(fresh){const old=world;applyLevel(edToLevel(ED));world=new Map();
+  for(const [k,b] of base){const o=old.get(k);b.t=fresh?-1e9:(o&&o.type===b.type?o.t:simT);world.set(k,b);}changed();computeNav();edUpdateStat();}
+function edSnap(){const L=edToLevel(ED);return JSON.stringify({size:L.size,b:L.b,s:L.s,vil:L.vil,zsp:L.zsp});}
+function edDo(fn){const before=edSnap();if(!fn())return false;undoS.push(before);if(undoS.length>50)undoS.shift();redoS.length=0;ED.dirty=true;edRebuild(false);return true;}
+function edRestore(s){const o=JSON.parse(s),E=levelToED({...edToLevel(ED),size:o.size,b:o.b,s:o.s,vil:o.vil,zsp:o.zsp},ED.id);E.name=ED.name;E.dirty=true;ED=E;edRebuild(false);edRenderSettings();}
+function edUndo(){if(!undoS.length){toast('Nothing to undo.');return;}redoS.push(edSnap());edRestore(undoS.pop());sfx(500,300,.08,'triangle',.06);}
+function edRedo(){if(!redoS.length){toast('Nothing to redo.');return;}undoS.push(edSnap());edRestore(redoS.pop());sfx(300,500,.08,'triangle',.06);}
+function edResize(v){if(v===ED.size)return;edDo(()=>{ED.size=v;flatGround(ED,v,'grass');const S=SIZES[v];ED.sites=ED.sites.filter(s=>inShape(S,s[1],s[3]));ED.vil=ED.vil.filter(p=>inShape(S,p[0],p[1]));ED.zsp=ED.zsp.filter(p=>inShape(S,p[0],p[1]));return true;});
+  Object.assign(cam,{dist:SIZES[v].dist+9,target:[CX,0,CZ]});toast(`The island is now ${SIZES[v].label}. (Undo takes it back)`,'good');}
+function edFill(){const top=(edBlock==='door'||edBlock==='torch')?'grass':edBlock;edDo(()=>{flatGround(ED,ED.size,top);return true;});
+  toast(top==='water'?'Everything is water now! Villagers need ground, so Undo if that was a surprise.':`The ground is now flat ${B[top].name}. (Undo takes it back)`,top==='water'?'warn':'good');}
+function edClear(){edDo(()=>{ED.blocks.clear();ED.sites=[];ED.vil=[];ED.zsp=[];flatGround(ED,ED.size,'grass');return true;});toast('Cleared! A fresh flat island. (Undo brings it all back)','good');}
+function edTakeName(){ED.name=cleanName($('edname').value)||ED.name||nextName();$('edname').value=ED.name;}
+function edSave(){edTakeName();const id=storeLevel(edToLevel(ED),ED.id);if(id){ED.id=id;ED.dirty=false;toast(`Saved "${ED.name}" in My Levels!`,'good');sfx(600,900,.12,'triangle',.08);}edUpdateStat();return !!id;}
+function edTest(){if(!ED.vil.length){ask('No villagers yet!','Add at least one villager with the Villager tool, so there is someone to keep safe.',[{label:'OK',cls:'c-green'}]);return;}
+  edTakeName();startPlay(edToLevel(ED),{testing:true});}
+function edLeave(){if(ED.dirty)ask('Save your level?','You have changes that are not saved yet.',[{label:'Save and leave',cls:'c-green',fn:()=>{if(edSave())showMenu('levels',ED.id);}},{label:'Leave without saving',cls:'c-red',fn:()=>showMenu('main')},{label:'Keep building',cls:'c-grey'}]);
+  else showMenu(ED.id?'levels':'main',ED.id);}
+function edHit(r,real){let v=null;
+  if(r.d[1]<-1e-4){const t=(-1-r.o[1])/r.d[1],x=Math.floor(r.o[0]+r.d[0]*t),z=Math.floor(r.o[2]+r.d[2]*t);if(x>=LX0&&x<=LX1&&z>=LX0&&z<=LX1&&!world.has(key(x,-1,z)))v={x,y:-2,z,n:[0,1,0],t,virtual:true};}
+  if(real&&(!v||real.t<=v.t+.01))return real;return v;}
+function pickMarker(r,maxT){if(!ED)return null;let best=null,bt=maxT===undefined?1e9:maxT+.3;
+  const test=(list,kind)=>list.forEach(([x,z],i)=>{const t=rayBox(r.o,r.d,[x+.15,0,z+.15],[x+.85,2.1,z+.85]);if(t!==null&&t<bt){bt=t;best={kind,i,x,z};}});
+  test(ED.vil,'vil');test(ED.zsp,'zomb');return best;}
+function brushCells(x,y,z,n,size){if(size!==3)return [[x,y,z]];const A=n[1]?[[1,0,0],[0,0,1]]:n[0]?[[0,1,0],[0,0,1]]:[[1,0,0],[0,1,0]],out=[];
+  for(let a=-1;a<=1;a++)for(let b=-1;b<=1;b++)out.push([x+A[0][0]*a+A[1][0]*b,y+A[0][1]*a+A[1][1]*b,z+A[0][2]*a+A[1][2]*b]);return out;}
+const doorRot=()=>Math.abs(Math.sin(cam.yaw))>Math.abs(Math.cos(cam.yaw))?1:0;
+function edClick(tool){if(modalOpen||!ED)return;const hm=hoverM,ht=hover;
+  if(hm&&(tool==='erase'||(tool==='vil'&&hm.kind==='vil')||(tool==='zomb'&&hm.kind==='zomb'))){edDo(()=>{(hm.kind==='vil'?ED.vil:ED.zsp).splice(hm.i,1);return true;});sfx(300,140,.1,'sawtooth',.05);return;}
+  if(!ht)return;
+  if(tool==='erase'){if(ht.virtual)return;
+    const ok=edDo(()=>{let n=0;const kill=new Set();
+      for(const [x,y,z] of brushCells(ht.x,ht.y,ht.z,ht.n,edBrush)){const k=key(x,y,z),b=world.get(k);if(!b)continue;
+        if(b.nat>=0){kill.add(sites[b.nat].src);continue;}
+        if(ED.blocks.delete(k))n++;
+        if(b.type==='door')for(const dy of [-1,1]){const k2=key(x,y+dy,z),o=ED.blocks.get(k2);if(o&&o[0]===BTI.door)ED.blocks.delete(k2);}}
+      if(kill.size){ED.sites=ED.sites.filter((s,i)=>!kill.has(i));n+=kill.size;}return n>0;});
+    if(ok)sfx(300,140,.1,'sawtooth',.05);return;}
+  const px=ht.x+ht.n[0],py=ht.y+ht.n[1],pz=ht.z+ht.n[2];
+  if(tool==='build'){const ti=BTI[edBlock],cells=edBlock==='door'?[[px,py,pz]]:brushCells(px,py,pz,ht.n,edBrush);let why='';
+    const ok=edDo(()=>{let n=0;for(const [x,y,z] of cells){if(!inLB(x,y,z)){why='out';continue;}const k=key(x,y,z);if(world.has(k)||ED.blocks.has(k))continue;if(y>=0&&y<=1&&markerAtE(ED,x,z)){why='marker';continue;}
+        if(edBlock==='door'){const k2=key(x,y+1,z);if(!inLB(x,y+1,z)||world.has(k2)||ED.blocks.has(k2))continue;const r=doorRot();ED.blocks.set(k,[ti,r]);ED.blocks.set(k2,[ti,r]);n++;continue;}
+        ED.blocks.set(k,[ti,0]);n++;}return n>0;});
+    if(ok)sfx(420,700,.09);else if(why==='out')toast('That is outside the building area.','warn');else if(why==='marker')toast('A spawn point is standing there.','warn');return;}
+  if(ht.virtual){toast('Put some ground there first (use Build).','warn');return;}
+  if(ht.n[1]!==1){toast('Click on the top of the ground.','warn');return;}
+  if(!inLB(px,py,pz))return;
+  const kind={tree:0,rock:1,sand:2}[tool];
+  if(kind!==undefined){if(world.has(key(px,py,pz))){toast('Something is already there.','warn');return;}
+    if(py>=0&&py<=1&&markerAtE(ED,px,pz)){toast('A spawn point is standing there.','warn');return;}
+    if(ED.sites.length>=400){toast('That is a lot! The most is 400 trees, rocks and sand piles.','warn');return;}
+    edDo(()=>{ED.sites.push([kind,px,py,pz]);return true;});sfx(500,800,.12,'triangle',.08);return;}
+  if(tool==='vil'||tool==='zomb'){
+    if(py!==0){toast('Spawn points go on the flat ground level.','warn');return;}
+    const list=tool==='vil'?ED.vil:ED.zsp,other=tool==='vil'?ED.zsp:ED.vil,i=list.findIndex(p=>p[0]===px&&p[1]===pz);
+    if(i>=0){edDo(()=>{list.splice(i,1);return true;});return;}
+    if(tool==='vil'&&ED.vil.length>=12){toast('12 villagers is the most!','warn');return;}
+    if(tool==='zomb'&&ED.zsp.length>=16){toast('16 zombie spawn points is the most!','warn');return;}
+    const g=world.get(key(px,-1,pz)),b0=world.get(key(px,0,pz)),b1=world.get(key(px,1,pz));
+    if(g&&g.type==='water'){toast(tool==='vil'?"Villagers can't stand on water!":"Zombies can't climb out of water here.",'warn');return;}
+    if((blk(b0)&&b0.type!=='door')||(blk(b1)&&b1.type!=='door')){toast('That spot is blocked.','warn');return;}
+    edDo(()=>{const j=other.findIndex(p=>p[0]===px&&p[1]===pz);if(j>=0)other.splice(j,1);list.push([px,pz]);return true;});
+    sfx(tool==='vil'?660:200,tool==='vil'?990:120,.15,'triangle',.08);return;}
+  if(tool==='hut'){if(edDo(()=>stampHut(ED,px,py,pz,true)>0)){sfx(523,784,.2,'triangle',.1);toast('Starter hut placed! Its floor glows when it is a safe shelter.','good');}else toast('No room for a hut there.','warn');}}
+function edDraw(trans,glow,t){if(!ED)return;
+  const bc=[140,210,255,.45],y=.03;
+  glow.push(m=>{box(m,LX0,y,LX0,LX1+1,y+.03,LX0+.1,T.white,bc,{emis:1});box(m,LX0,y,LX1+.9,LX1+1,y+.03,LX1+1,T.white,bc,{emis:1});box(m,LX0,y,LX0,LX0+.1,y+.03,LX1+1,T.white,bc,{emis:1});box(m,LX1+.9,y,LX0,LX1+1,y+.03,LX1+1,T.white,bc,{emis:1});});
+  ED.vil.forEach(([x,z],i)=>{drawVillager(mDyn,mBright,trans,{x:x+.5,z:z+.5,th:Math.atan2(EYE[0]-x-.5,EYE[2]-z-.5),mode:'walk',spd:0,anim:0,col:VCOL[i%VCOL.length]},t);
+    glow.push(m=>box(m,x+.06,.015,z+.06,x+.94,.035,z+.94,T.white,[120,255,140,.35+.1*Math.sin(t*3)],{emis:1}));});
+  ED.zsp.forEach(([x,z],i)=>{drawZombie(mDyn,mBright,glow,trans,{id:i,x:x+.5,z:z+.5,th:Math.atan2(EYE[0]-x-.5,EYE[2]-z-.5),anim:t*1.4+i,spd:0,hp:3,rise:1,burn:-1,hitT:-9,dead:false},t);
+    glow.push(m=>box(m,x+.06,.015,z+.06,x+.94,.035,z+.94,T.white,[200,110,255,.4+.1*Math.sin(t*3+1)],{emis:1}));});
+  if(modalOpen||(down&&down.drag))return;
+  const tool=edTool,hm=hoverM,ht=hover;
+  if(hm&&(tool==='erase'||tool===hm.kind)){const {x,z}=hm;trans.push({x:x+.5,y:1,z:z+.5,f:m=>box(m,x+.1,0,z+.1,x+.9,2.15,z+.9,T.white,[255,80,80,.3],{emis:1})});return;}
+  if(!ht)return;
+  if(!ht.virtual){const g=.01;glow.push(m=>box(m,ht.x-g,ht.y-g,ht.z-g,ht.x+1+g,ht.y+1+g,ht.z+1+g,T.white,[255,255,255,.14],{emis:1}));}
+  if(tool==='erase'){if(ht.virtual)return;for(const [x,y,z] of brushCells(ht.x,ht.y,ht.z,ht.n,edBrush)){if(!world.has(key(x,y,z)))continue;const g=.03;trans.push({x:x+.5,y:y+.5,z:z+.5,f:m=>box(m,x-g,y-g,z-g,x+1+g,y+1+g,z+1+g,T.white,[255,70,70,.35],{emis:1})});}return;}
+  const px=ht.x+ht.n[0],py=ht.y+ht.n[1],pz=ht.z+ht.n[2];
+  if(tool==='build'){const d=B[edBlock],cells=edBlock==='door'?[[px,py,pz],[px,py+1,pz]]:brushCells(px,py,pz,ht.n,edBrush);
+    for(const [x,y,z] of cells){if(!inLB(x,y,z)||world.has(key(x,y,z)))continue;trans.push({x:x+.5,y:y+.5,z:z+.5,f:m=>box(m,x+.03,y+.03,z+.03,x+.97,y+.97,z+.97,edBlock==='door'?T.door_bottom:d.tiles,[255,255,255,.5],{emis:1})});}return;}
+  if(ht.virtual||ht.n[1]!==1)return;
+  if(tool==='hut'){trans.push({x:px+.5,y:py+1,z:pz+.5,f:m=>box(m,px-2,py,pz-2,px+3,py+3.2,pz+3,T.planks,[255,255,255,.3],{emis:1})});return;}
+  if(tool==='tree'){trans.push({x:px+.5,y:py+2,z:pz+.5,f:m=>{box(m,px+.3,py,pz+.3,px+.7,py+3.5,pz+.7,T.log_side,[255,255,255,.5],{emis:1});box(m,px-1.5,py+3,pz-1.5,px+2.5,py+6,pz+2.5,T.leaves,[255,255,255,.35],{emis:1});}});return;}
+  const col=tool==='vil'?[120,255,140,.35]:tool==='zomb'?[200,110,255,.4]:[255,255,255,.5],tl=tool==='rock'?T.rock:tool==='sand'?T.sand:T.white,hh=(tool==='vil'||tool==='zomb')?2:1;
+  trans.push({x:px+.5,y:py+.5,z:pz+.5,f:m=>box(m,px+.05,py,pz+.05,px+.95,py+hh,pz+.95,tl,col,{emis:1})});}
+
+// ------------------------------------------------------------------ main loop / hooks
+applyLevel(null);resetGame();
+if(jumpT>simT)advance(jumpT-simT);else simT=jumpT;
+if(DIRECT||AUTO){mode='play';setUI();if(!AUTO&&simT<20)setTimeout(()=>toast('Hold click on a tree to gather logs!'),400);}
+else if(START_EDITOR)openEditor(newLevelED('medium'));
+else showMenu('main');
+let last=performance.now(),acc=0;
+function loop(now){const rdt=Math.min(.1,Math.max(0,(now-last)/1000));last=now;
+  if(mode==='edit')simT+=rdt;
+  else if(!FREEZE){acc+=rdt*(mode==='play'?SPEED:1);let n=0;while(acc>=1/60&&n<1200){step(1/60);acc-=1/60;n++;}if(n>=1200)acc=0;}
+  if(mode==='menu'){cam.yaw+=rdt*.05;if(cyc(simT)>90)resetGame();}
+  inputTick(rdt);frame();requestAnimationFrame(loop);}
+window.SURVIVAL={get simT(){return simT;},get inv(){return inv;},get sel(){return sel;},
+  villagers:()=>villagers.map(v=>({name:v.name,alive:v.alive,x:+v.x.toFixed(2),z:+v.z.toFixed(2),mode:v.mode,sheltered:v.sheltered})),
+  zombies:()=>zombies.map(z=>({x:+z.x.toFixed(2),z:+z.z.toFixed(2),hp:z.hp,rise:+z.rise.toFixed(2),burn:+z.burn.toFixed(2)})),
+  shelters:()=>regions.slice(1).map(r=>r.cells.length),bot:()=>({i:bot.i,n:HUT.length}),
+  advance:s=>{advance(s);frame();return simT;},setCam:o=>{Object.assign(cam,o);frame();},
+  project:(x,y,z)=>{const m=VP,cx=m[0]*x+m[4]*y+m[8]*z+m[12],cy=m[1]*x+m[5]*y+m[9]*z+m[13],w=m[3]*x+m[7]*y+m[11]*z+m[15];return [(cx/w*.5+.5)*innerWidth,(1-(cy/w*.5+.5))*innerHeight];},
+  give:(id,n)=>{inv[id]=(inv[id]||0)+n;},
+  get mode(){return mode;},get level(){return LEVEL&&LEVEL.name;},get won(){return won;},get nights(){return stats.nights;},
+  ed:()=>ED&&{name:ED.name,blocks:ED.blocks.size,sites:ED.sites.length,trees:ED.sites.filter(s=>s[0]===0).length,rocks:ED.sites.filter(s=>s[0]===1).length,vil:ED.vil.length,zsp:ED.zsp.length,set:{...ED.set},inv:{...ED.inv},size:ED.size,undo:undoS.length,dirty:ED.dirty,id:ED.id},
+  store:()=>loadStore().map(e=>({id:e.id,name:e.level.name})),encode:L=>encodeLevel(L||edToLevel(ED)),hover:()=>hover};
+frame();
+window.__ready=true;
+requestAnimationFrame(loop);
+})();
+</script>
+</body>
+</html>
