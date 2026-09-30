@@ -65,7 +65,7 @@ function loadHist(){try{return JSON.parse(localStorage.getItem('footyHistory')||
 function saveHist(){const pts=p=>p.g*6+p.b;const h=loadHist();const d=new Date();h.unshift({when:d.toLocaleDateString()+' '+d.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'}),kicks:rounds,ps:players.map(p=>({n:p.name,g:p.g,b:p.b,c:p.c}))});try{localStorage.setItem('footyHistory',JSON.stringify(h.slice(0,10)));}catch(e){}}
 function histHTML(){const h=loadHist();if(!h.length)return '';const pts=p=>p.g*6+p.b;
   return '<div class="hh">GAME HISTORY</div><table>'+h.map(r=>{const L=[...r.ps].sort((a,b)=>pts(b)-pts(a));return '<tr><td style="opacity:.7">'+esc(r.when)+'</td><td>'+L.map((p,i)=>(i===0&&L.length>1?'🏆 ':'')+'<span style="color:'+p.c+'">●</span> '+esc(p.n)+' '+p.g+'.'+p.b+' ('+pts(p)+')').join(' &nbsp; ')+'</td></tr>';}).join('')+'</table><button class="pick" style="font-size:13px;padding:5px 10px" onclick="localStorage.removeItem(\'footyHistory\');this.parentNode.innerHTML=\'\'">Clear history</button>';}
-function esc(t){return t.replace(/[&<>"']/g,c=>({'&':'&','<':'<','>':'>','"':'"',"'":'&#39;'}[c]));}
+function esc(t){return t.replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'"',"'":'&#39;'}[c]));}
 // camera: kicker stands at origin looking +z; goal line at z=d, centre x=side
 const cam={x:0,y:1.7,z:-4};
 function proj(x,y,z){const dz=z-cam.z;if(dz<0.3)return null;const f=H*0.9;return{x:W/2+f*(x-cam.x)/dz,y:H*0.42-f*(y-cam.y)/dz,s:f/dz};}
