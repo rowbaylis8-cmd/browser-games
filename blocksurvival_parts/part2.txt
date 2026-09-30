@@ -1,0 +1,348 @@
+const BTI={};BT.forEach((t,i)=>BTI[t]=i);
+const SITEK=['tree','rock','sand'];
+const LX0=-14,LX1=20,LY0=-6,LY1=24;
+const inLB=(x,y,z)=>x>=LX0&&x<=LX1&&z>=LX0&&z<=LX1&&y>=LY0&&y<=LY1;
+function natIf(x,y,z,type,s){if(!inLB(x,y,z))return;const k=key(x,y,z);if(!base.has(k))nat(k,type,s);}
+function genTree(tx,ty,tz,s){for(let y=0;y<=3;y++)natIf(tx,ty+y,tz,'log',s);
+  for(let y=3;y<=6;y++){const r=y<=4?2:1;for(let dx=-r;dx<=r;dx++)for(let dz=-r;dz<=r;dz++){if(r===2&&Math.abs(dx)===2&&Math.abs(dz)===2)continue;if(y===6&&Math.abs(dx)+Math.abs(dz)>1)continue;natIf(tx+dx,ty+y,tz+dz,'leaves',s);}}}
+function genRock(rx,ry,rz,s){const ri=rx*31+rz*7+ry*3+500,OFF=[[0,0],[1,0],[0,1],[1,1],[-1,0],[0,-1],[-1,1],[1,-1]];
+  OFF.forEach(([dx,dz],j)=>{if(j>=3&&hash(ri,j)>.5)return;const x=rx+dx,z=rz+dz;if(j>0&&!base.has(key(x,ry-1,z)))return;if(base.has(key(x,ry,z)))return;natIf(x,ry,z,'rock',s);
+    if(j===0||(j<4&&hash(ri,j+9)<.45))natIf(x,ry+1,z,'rock',s);});}
+function genSand(sx,sy,sz,s){for(let dx=-1;dx<=1;dx++)for(let dz=-1;dz<=1;dz++){const h=hash(sx*5+dx+900,sz*3+dz);if((dx||dz)&&h>.55)continue;const x=sx+dx,z=sz+dz;if((dx||dz)&&!base.has(key(x,sy-1,z)))continue;
+    natIf(x,sy,z,'sand',s);if(!dx&&!dz||h<.12)natIf(x,sy+1,z,'sand',s);}}
+function buildLevel(L){base.clear();flowers.length=0;sites.length=0;
+  const b=L.b;for(let i=0;i+4<b.length;i+=5){const type=BT[b[i+3]];if(!type)continue;base.set(key(b[i],b[i+1],b[i+2]),{type,rot:b[i+4]|0,t:-1e9,nat:-1});}
+  L.s.forEach(([k,x,y,z],src)=>{const kind=SITEK[k];if(!kind)return;const s=sites.push({kind,blocks:[],src})-1;
+    if(kind==='tree')genTree(x,y,z,s);else if(kind==='rock')genRock(x,y,z,s);else genSand(x,y,z,s);});
+  const FCOL=[[230,60,60],[250,210,60],[90,120,240],[250,250,250],[240,130,200]],spawn=new Set([...L.vil,...L.zsp].map(p=>p[0]+','+p[1]));
+  for(const [k,bb] of base){if(bb.type!=='grass'||bb.nat>=0)continue;const [x,y,z]=k.split(',').map(Number);if(y!==-1||base.has(key(x,0,z))||spawn.has(x+','+z))continue;
+    const hh=hash(x*7+3,z*11+5);if(hh<.075)flowers.push({x:x+.3+hash(x,z+40)*.4,z:z+.3+hash(x+40,z)*.4,c:FCOL[Math.floor(hash(x+9,z+9)*FCOL.length)],cx:x,cz:z});}}
+
+// the shelter the demo builds (5x5 hut, door facing the path)
+const HUT=[];
+{const per=[];for(let x=1;x<=5;x++)per.push([x,0]);for(let z=1;z<=4;z++)per.push([5,z]);for(let x=4;x>=1;x--)per.push([x,4]);for(let z=3;z>=1;z--)per.push([1,z]);
+ const WIN=new Set(['1,1,2','5,1,2','3,1,4']);
+ for(let y=0;y<=1;y++)for(const [x,z] of per){if(x===3&&z===0){if(y===0)HUT.push({x,y,z,type:'door'});continue;}
+   if(WIN.has(key(x,y,z)))continue;const corner=(x===1||x===5)&&(z===0||z===4);HUT.push({x,y,z,type:corner?'log':'planks'});}
+ HUT.push({x:3,y:0,z:0,type:'door'});
+ for(const k of WIN){const [x,y,z]=k.split(',').map(Number);HUT.push({x,y,z,type:'glass'});}
+ for(let x=1;x<=5;x++)for(let z=0;z<=4;z++)HUT.push({x,y:2,z,type:'roof'});
+ for(let x=2;x<=4;x++)for(let z=1;z<=3;z++)HUT.push({x,y:3,z,type:'roof'});
+ HUT.push({x:3,y:4,z:2,type:'roof'});
+ for(const [x,z] of [[2,-1],[4,-1],[0,5],[6,5],[-1,1]])HUT.push({x,y:0,z,type:'torch'});
+ // dedupe door
+ const seen=new Set();for(let i=HUT.length-1;i>=0;i--){const k=key(HUT[i].x,HUT[i].y,HUT[i].z);if(seen.has(k))HUT.splice(i,1);else seen.add(k);}}
+const inHutArea=(x,z)=>x>=0&&x<=6&&z>=-1&&z<=5;
+
+// ------------------------------------------------------------------ world + navigation state
+let world=new Map(base), worldVersion=0, navDirty=true, navVer=0;
+const GX0=-14,GZ0=-14,GN=35,NN=GN*GN,INF=30000;
+const inGrid=(x,z)=>x>=GX0&&x<GX0+GN&&z>=GZ0&&z<GZ0+GN;
+const gi=(x,z)=>(x-GX0)*GN+(z-GZ0);
+const gxOf=i=>((i/GN)|0)+GX0, gzOf=i=>i%GN+GZ0;
+const passV=new Uint8Array(NN), passZ=new Uint8Array(NN), ground=new Uint8Array(NN), covered=new Uint8Array(NN), landOrWater=new Uint8Array(NN);
+const shelterId=new Int16Array(NN), toShelter=new Int16Array(NN), zField=new Int16Array(NN);
+let regions=[null], edgeCells=[], walkCells=[];
+const Q=new Int32Array(NN*4);
+const blk=b=>!!b&&b.type!=='torch';
+function bfs(field,seeds,pass){field.fill(INF);let h=0,tl=0;
+  for(const s of seeds){if(s>=0&&field[s]!==0){field[s]=0;Q[tl++]=s;}}
+  while(h<tl){const i=Q[h++],d=field[i]+1,x=(i/GN)|0,z=i%GN;
+    if(x>0){const j=i-GN;if(pass[j]&&field[j]>d){field[j]=d;Q[tl++]=j;}}
+    if(x<GN-1){const j=i+GN;if(pass[j]&&field[j]>d){field[j]=d;Q[tl++]=j;}}
+    if(z>0){const j=i-1;if(pass[j]&&field[j]>d){field[j]=d;Q[tl++]=j;}}
+    if(z<GN-1){const j=i+1;if(pass[j]&&field[j]>d){field[j]=d;Q[tl++]=j;}}}}
+function computeNav(){
+  navDirty=false;navVer++;
+  for(let x=GX0;x<GX0+GN;x++)for(let z=GZ0;z<GZ0+GN;z++){const i=gi(x,z);
+    const gb=world.get(key(x,-1,z)),g=blk(gb)&&gb.type!=='water',b0=world.get(key(x,0,z)),b1=world.get(key(x,1,z));
+    ground[i]=g?1:0;landOrWater[i]=blk(gb)?1:0;
+    const d0=b0&&b0.type==='door',d1=b1&&b1.type==='door';
+    passV[i]=g&&(!blk(b0)||d0)&&(!blk(b1)||d1)?1:0;
+    passZ[i]=g&&!blk(b0)&&!blk(b1)?1:0;
+    let cov=0;for(let y=2;y<=14;y++){const cb=world.get(key(x,y,z));if(blk(cb)&&cb.type!=='water'){cov=1;break;}}covered[i]=cov;}
+  // shelters: zombie-walkable pockets that are closed off (walls + door) and fully roofed
+  shelterId.fill(0);regions=[null];const seen=new Uint8Array(NN);
+  for(let i=0;i<NN;i++){if(!passZ[i]||seen[i])continue;
+    const cells=[];let leak=false,h=0,tl=0;Q[tl++]=i;seen[i]=1;
+    while(h<tl){const c=Q[h++];cells.push(c);if(!covered[c])leak=true;const x=(c/GN)|0,z=c%GN;
+      if(x===0||z===0||x===GN-1||z===GN-1){leak=true;}
+      for(const j of [x>0?c-GN:-1,x<GN-1?c+GN:-1,z>0?c-1:-1,z<GN-1?c+1:-1]){if(j<0||seen[j]||!passZ[j])continue;seen[j]=1;Q[tl++]=j;}}
+    if(!leak&&cells.length<=150){const id=regions.length;let sx=0,sz=0;for(const c of cells){shelterId[c]=id;sx+=gxOf(c)+.5;sz+=gzOf(c)+.5;}
+      regions.push({id,cells,cx:sx/cells.length,cz:sz/cells.length});}}
+  const seeds=[];for(let i=0;i<NN;i++)if(shelterId[i])seeds.push(i);
+  bfs(toShelter,seeds,passV);
+  edgeCells=[];walkCells=[];
+  for(let i=0;i<NN;i++){if(!passZ[i]||shelterId[i])continue;walkCells.push(i);const x=(i/GN)|0,z=i%GN;
+    let edge=false;for(const [dx,dz] of [[1,0],[-1,0],[0,1],[0,-1],[2,0],[-2,0],[0,2],[0,-2]]){const nx=x+dx,nz=z+dz;if(nx<0||nz<0||nx>=GN||nz>=GN||!landOrWater[nx*GN+nz]){edge=true;break;}}
+    if(edge)edgeCells.push(i);}
+}
+function cellPass(pass,x,z){const cx=Math.floor(x),cz=Math.floor(z);return inGrid(cx,cz)&&pass[gi(cx,cz)]===1;}
+function canAt(pass,x,z,r){return cellPass(pass,x-r,z-r)&&cellPass(pass,x+r,z-r)&&cellPass(pass,x-r,z+r)&&cellPass(pass,x+r,z+r);}
+function moveEnt(e,vx,vz,dt,pass){const r=.28,stuck=!canAt(pass,e.x,e.z,r);
+  const nx=e.x+vx*dt;if(stuck||canAt(pass,nx,e.z,r))e.x=nx;
+  const nz=e.z+vz*dt;if(stuck||canAt(pass,e.x,nz,r))e.z=nz;
+  e.x=clamp(e.x,GX0+1,GX0+GN-2);e.z=clamp(e.z,GZ0+1,GZ0+GN-2);}
+function cellOf(x,z){const cx=Math.floor(x),cz=Math.floor(z);return inGrid(cx,cz)?gi(cx,cz):-1;}
+function flowTarget(field,pass,px,pz){const cx=Math.floor(px),cz=Math.floor(pz);if(!inGrid(cx,cz))return null;
+  const i=gi(cx,cz);let best=field[i];if(best===0)return null;let bx=null,bz=null;
+  for(let dx=-1;dx<=1;dx++)for(let dz=-1;dz<=1;dz++){if(!dx&&!dz)continue;const nx=cx+dx,nz=cz+dz;if(!inGrid(nx,nz))continue;const j=gi(nx,nz);if(!pass[j])continue;
+    const diag=dx&&dz;if(diag&&(!cellPass(pass,cx+dx+.5,cz+.5)||!cellPass(pass,cx+.5,cz+dz+.5)))continue;
+    const d=field[j]-(diag?0.6:0);if(field[j]<INF&&d<best){best=d;bx=nx+.5;bz=nz+.5;}}
+  return bx===null?null:[bx,bz];}
+
+// ------------------------------------------------------------------ WebGL
+const canvas=document.getElementById('gl');
+const gl=canvas.getContext('webgl',{antialias:true,preserveDrawingBuffer:true,alpha:false});
+if(!gl){const e=document.getElementById('err');e.style.display='flex';e.textContent='WebGL is not available in this browser, so BlockSurvival cannot run.';return;}
+function sh(type,src){const s=gl.createShader(type);gl.shaderSource(s,src);gl.compileShader(s);if(!gl.getShaderParameter(s,gl.COMPILE_STATUS))throw new Error(gl.getShaderInfoLog(s));return s;}
+function prog(vs,fs){const p=gl.createProgram();gl.attachShader(p,sh(gl.VERTEX_SHADER,vs));gl.attachShader(p,sh(gl.FRAGMENT_SHADER,fs));gl.linkProgram(p);if(!gl.getProgramParameter(p,gl.LINK_STATUS))throw new Error(gl.getProgramInfoLog(p));return p;}
+const NTL=16;
+const MP=prog(`attribute vec3 aP;attribute vec2 aU;attribute vec4 aC;uniform mat4 uVP;uniform vec3 uCam;varying vec2 vU;varying vec4 vC;varying float vD;varying vec3 vW;
+void main(){gl_Position=uVP*vec4(aP,1.);vU=aU;vC=aC;vD=distance(aP,uCam);vW=aP;}`,
+`precision mediump float;uniform sampler2D uT;uniform vec3 uFog;uniform vec2 uFR;uniform float uCut;uniform vec3 uAmb;uniform float uTK;uniform vec4 uTL[${NTL}];
+varying vec2 vU;varying vec4 vC;varying float vD;varying vec3 vW;
+void main(){vec4 c=texture2D(uT,vU)*vC;if(c.a<uCut)discard;vec3 L=uAmb;
+ if(uTK>0.){float s=0.;for(int i=0;i<${NTL};i++){vec4 t=uTL[i];float d=distance(vW,t.xyz);float k=max(0.,1.-d/6.5);s+=t.w*k*k;}L+=vec3(1.,.7,.36)*min(s,1.2)*uTK;}
+ c.rgb*=min(L,vec3(1.3));float f=clamp((vD-uFR.x)/(uFR.y-uFR.x),0.,1.);gl_FragColor=vec4(mix(c.rgb,uFog,f*.85),c.a);}`);
+const SP=prog(`attribute vec2 aP;varying float vY;void main(){vY=aP.y;gl_Position=vec4(aP,.999,1.);}`,
+`precision mediump float;varying float vY;uniform vec3 uTop;uniform vec3 uHor;void main(){float t=clamp(vY*.5+.5,0.,1.);gl_FragColor=vec4(mix(uHor,uTop,pow(t,.8)),1.);}`);
+const loc={aP:gl.getAttribLocation(MP,'aP'),aU:gl.getAttribLocation(MP,'aU'),aC:gl.getAttribLocation(MP,'aC'),uVP:gl.getUniformLocation(MP,'uVP'),uCam:gl.getUniformLocation(MP,'uCam'),uT:gl.getUniformLocation(MP,'uT'),uFog:gl.getUniformLocation(MP,'uFog'),uFR:gl.getUniformLocation(MP,'uFR'),uCut:gl.getUniformLocation(MP,'uCut'),
+  uAmb:gl.getUniformLocation(MP,'uAmb'),uTK:gl.getUniformLocation(MP,'uTK'),uTL:gl.getUniformLocation(MP,'uTL'),sP:gl.getAttribLocation(SP,'aP'),uTop:gl.getUniformLocation(SP,'uTop'),uHor:gl.getUniformLocation(SP,'uHor')};
+const skyBuf=gl.createBuffer();gl.bindBuffer(gl.ARRAY_BUFFER,skyBuf);gl.bufferData(gl.ARRAY_BUFFER,new Float32Array([-1,-1,1,-1,-1,1,-1,1,1,-1,1,1]),gl.STATIC_DRAW);
+const tex=gl.createTexture();gl.bindTexture(gl.TEXTURE_2D,tex);gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,gl.RGBA,gl.UNSIGNED_BYTE,atlas);
+gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MIN_FILTER,gl.NEAREST);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MAG_FILTER,gl.NEAREST);
+gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_S,gl.CLAMP_TO_EDGE);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_T,gl.CLAMP_TO_EDGE);
+
+class Mesh{constructor(){this.a=new Float32Array(9*6*4096);this.n=0;this.buf=gl.createBuffer();}
+  reset(){this.n=0;}
+  grow(k){if(this.n+k>this.a.length){const b=new Float32Array(Math.max(this.a.length*2,this.n+k));b.set(this.a);this.a=b;}}
+  upload(){gl.bindBuffer(gl.ARRAY_BUFFER,this.buf);gl.bufferData(gl.ARRAY_BUFFER,this.a.subarray(0,this.n),gl.DYNAMIC_DRAW);}
+  draw(){if(!this.n)return;gl.bindBuffer(gl.ARRAY_BUFFER,this.buf);
+    gl.vertexAttribPointer(loc.aP,3,gl.FLOAT,false,36,0);gl.vertexAttribPointer(loc.aU,2,gl.FLOAT,false,36,12);gl.vertexAttribPointer(loc.aC,4,gl.FLOAT,false,36,20);
+    gl.drawArrays(gl.TRIANGLES,0,this.n/9);}}
+const mStatic=new Mesh(), mDyn=new Mesh(), mTrans=new Mesh(), mGlow=new Mesh(), mBright=new Mesh(), mSky=new Mesh();
+
+const FN=[[1,0,0],[-1,0,0],[0,1,0],[0,-1,0],[0,0,1],[0,0,-1]];
+const FC=[[[1,0,1],[1,1,1],[1,1,0],[1,0,0]],[[0,0,0],[0,1,0],[0,1,1],[0,0,1]],[[0,1,0],[0,1,1],[1,1,1],[1,1,0]],[[0,0,0],[1,0,0],[1,0,1],[0,0,1]],[[0,0,1],[0,1,1],[1,1,1],[1,0,1]],[[1,0,0],[1,1,0],[0,1,0],[0,0,0]]];
+const LD=(()=>{const v=[0.45,0.85,0.3],l=Math.hypot(...v);return v.map(a=>a/l);})();
+function shade(nx,ny,nz){const d=nx*LD[0]+ny*LD[1]+nz*LD[2];return 0.6+0.4*Math.max(0,d)-(ny<-0.5?0.12:0);}
+const WHITE=[255,255,255,1];
+function tileUV(t){const u0=((t%8)*TS+.02)/AT,v0=(Math.floor(t/8)*TS+.02)/AT;return [u0,v0,u0+(TS-.04)/AT,v0+(TS-.04)/AT];}
+function box(m,x0,y0,z0,x1,y1,z1,tiles,col,o){
+  col=col||WHITE;const rot=o&&o.rot||0,px=o&&o.px||0,pz=o&&o.pz||0,emis=o&&o.emis,skip=o&&o.skip||0;
+  const c=Math.cos(rot),s=Math.sin(rot),X=[x0,x1],Y=[y0,y1],Z=[z0,z1];
+  m.grow(6*6*9);const A=m.a;
+  for(let f=0;f<6;f++){if(skip&(1<<f))continue;
+    const t=typeof tiles==='number'?tiles:tiles[f];
+    const [u0,v0,u1,v1]=tileUV(t);
+    let [nx,ny,nz]=FN[f];if(rot){const a=nx*c+nz*s,b=-nx*s+nz*c;nx=a;nz=b;}
+    const sh_=emis?1:shade(nx,ny,nz),r=col[0]/255*sh_,g=col[1]/255*sh_,b=col[2]/255*sh_,al=col[3]===undefined?1:col[3];
+    const cs=FC[f],uv=[[u0,v1],[u0,v0],[u1,v0],[u1,v1]],ord=[0,1,2,0,2,3];
+    for(const k of ord){const q=cs[k];let x=X[q[0]],y=Y[q[1]],z=Z[q[2]];
+      if(rot){const dx=x-px,dz=z-pz;x=px+dx*c+dz*s;z=pz-dx*s+dz*c;}
+      const i=m.n;A[i]=x;A[i+1]=y;A[i+2]=z;A[i+3]=uv[k][0];A[i+4]=uv[k][1];A[i+5]=r;A[i+6]=g;A[i+7]=b;A[i+8]=al;m.n+=9;}}
+}
+let CR=[1,0,0],CU=[0,1,0];
+function quad(m,cx,cy,cz,s,t,col){m.grow(6*9);const A=m.a;const [u0,v0,u1,v1]=tileUV(t);
+  const PC=[[-1,-1],[-1,1],[1,1],[1,-1]],uv=[[u0,v1],[u0,v0],[u1,v0],[u1,v1]];
+  for(const k of [0,1,2,0,2,3]){const [a,b]=PC[k],i=m.n;A[i]=cx+(CR[0]*a+CU[0]*b)*s;A[i+1]=cy+(CR[1]*a+CU[1]*b)*s;A[i+2]=cz+(CR[2]*a+CU[2]*b)*s;
+    A[i+3]=uv[k][0];A[i+4]=uv[k][1];A[i+5]=col[0]/255;A[i+6]=col[1]/255;A[i+7]=col[2]/255;A[i+8]=col[3];m.n+=9;}}
+const POP=0.28;
+function isSettled(b,now){return b&&b.t+POP<=now;}
+function solidAt(x,y,z,now){const b=world.get(key(x,y,z));return isSettled(b,now)&&B[b.type].solid;}
+function emitBlock(m,x,y,z,b,now,scale,dy,cull){
+  const d=B[b.type];
+  if(d.torch){scaledBox(m,x+.44,y,z+.44,x+.56,y+.62,z+.56,T.log_side,scale,dy,x+.5,y+.3,z+.5,0,[150,112,72,1]);return;}
+  if(d.door){const top=world.get(key(x,y-1,z));const tl=top&&top.type==='door'?T.door_top:T.door_bottom;
+    const t=[T.planks,T.planks,T.planks,T.planks,T.planks,T.planks];let bx0,bz0,bx1,bz1;
+    if(b.rot){t[0]=t[1]=tl;bx0=x+.41;bx1=x+.59;bz0=z;bz1=z+1;}else{t[4]=t[5]=tl;bx0=x;bx1=x+1;bz0=z+.41;bz1=z+.59;}
+    scaledBox(m,bx0,y,bz0,bx1,y+1,bz1,t,scale,dy,x+.5,y+.5,z+.5,0);return;}
+  let skip=0;
+  if(cull)for(let f=0;f<6;f++){const n=FN[f],nx=x+n[0],ny=y+n[1],nz=z+n[2];
+    if(solidAt(nx,ny,nz,now))skip|=1<<f;else if(d.glass||d.water){const nb=world.get(key(nx,ny,nz));if(nb&&nb.type===b.type&&isSettled(nb,now))skip|=1<<f;}}
+  let top=y+1;if(d.water){const up=world.get(key(x,y+1,z));if(!up||up.type!=='water'){top=y+.86;skip&=~4;}}
+  scaledBox(m,x,y,z,x+1,top,z+1,d.tiles,scale,dy,x+.5,y+.5,z+.5,skip);
+}
+function scaledBox(m,x0,y0,z0,x1,y1,z1,t,s,dy,cx,cy,cz,skip,col){
+  if(s===1&&!dy){box(m,x0,y0,z0,x1,y1,z1,t,col,{skip});return;}
+  box(m,cx+(x0-cx)*s,cy+(y0-cy)*s+dy,cz+(z0-cz)*s,cx+(x1-cx)*s,cy+(y1-cy)*s+dy,cz+(z1-cz)*s,t,col,{skip});
+}
+let staticSig='', torches=[];
+function rebuildStatic(now){
+  mStatic.reset();torches=[];
+  for(const [k,b] of world){if(b.type==='torch'){const [x,y,z]=k.split(',').map(Number);torches.push([x,y,z]);}
+    if(!isSettled(b,now)||B[b.type].glass||B[b.type].water)continue;const [x,y,z]=k.split(',').map(Number);emitBlock(mStatic,x,y,z,b,now,1,0,true);}
+  for(const f of flowers){if(world.has(key(f.cx,0,f.cz))||!world.has(key(f.cx,-1,f.cz)))continue;box(mStatic,f.x-.03,0,f.z-.03,f.x+.03,.32,f.z+.03,T.white,[70,150,50,1]);box(mStatic,f.x-.1,.3,f.z-.1,f.x+.1,.46,f.z+.1,T.white,[...f.c,1]);}
+  mStatic.upload();
+}
+
+// ------------------------------------------------------------------ math
+function perspective(fy,asp,n,f){const t=1/Math.tan(fy/2);return [t/asp,0,0,0,0,t,0,0,0,0,(f+n)/(n-f),-1,0,0,2*f*n/(n-f),0];}
+const sub=(a,b)=>[a[0]-b[0],a[1]-b[1],a[2]-b[2]],cross=(a,b)=>[a[1]*b[2]-a[2]*b[1],a[2]*b[0]-a[0]*b[2],a[0]*b[1]-a[1]*b[0]],dot=(a,b)=>a[0]*b[0]+a[1]*b[1]+a[2]*b[2],norm=a=>{const l=Math.hypot(...a)||1;return [a[0]/l,a[1]/l,a[2]/l];};
+function lookAt(e,c,u){const z=norm(sub(e,c)),x=norm(cross(u,z)),y=cross(z,x);return [x[0],y[0],z[0],0,x[1],y[1],z[1],0,x[2],y[2],z[2],0,-dot(x,e),-dot(y,e),-dot(z,e),1];}
+function mul(a,b){const o=new Array(16);for(let i=0;i<4;i++)for(let j=0;j<4;j++){let s=0;for(let k=0;k<4;k++)s+=a[k*4+j]*b[i*4+k];o[i*4+j]=s;}return o;}
+const FOV=40*Math.PI/180;
+
+// ------------------------------------------------------------------ camera
+const cam={yaw:-0.62,pitch:0.62,dist:36,target:[3,1,2.5]};
+function eyePos(){const cp=Math.cos(cam.pitch);return [cam.target[0]+cam.dist*cp*Math.sin(cam.yaw),cam.target[1]+cam.dist*Math.sin(cam.pitch),cam.target[2]-cam.dist*cp*Math.cos(cam.yaw)];}
+const YAW=P.has('yaw')?parseFloat(P.get('yaw')):null;
+function autoCamera(t){cam.yaw=YAW!==null?YAW:-0.95+t*0.03;cam.pitch=0.6+0.04*Math.sin(t*0.2);cam.dist=35;cam.target=[3,1,2.5];}
+
+// ------------------------------------------------------------------ day / night environment
+const cyc=t=>((t%CYCLE)+CYCLE)%CYCLE;
+function dayness(t){const c=cyc(t);if(c<DAYLEN/2)return smooth(-6,6,c);if(c<(DAYLEN+CYCLE)/2)return 1-smooth(DAYLEN-10,DAYLEN+4,c);return smooth(CYCLE-6,CYCLE+6,c);}
+function sunsetK(t){const c=cyc(t),cw=c<DAYLEN/2?c+CYCLE:c;return clamp(Math.exp(-(((c-(DAYLEN-4))/6.5)**2))+0.8*Math.exp(-(((cw-CYCLE)/5.5)**2)),0,1);}
+const isNight=t=>cyc(t)>=DAYLEN;
+function env(t){const d=dayness(t),s=sunsetK(t);
+  let top=mix3([.06,.08,.21],[.33,.60,.93],d),hor=mix3([.17,.22,.42],[.80,.91,.99],d),amb=mix3([.52,.58,.86],[1,1,1],d),fog=mix3([.15,.19,.38],[.8,.91,.99],d);
+  top=mix3(top,[.32,.34,.62],s*.6);hor=mix3(hor,[1,.62,.42],s*.85);amb=mix3(amb,[1,.8,.68],s*.5);fog=mix3(fog,[.92,.62,.5],s*.7);
+  return {d,s,top,hor,amb,fog};}
+const STARS=[];{const r=mulberry(77);for(let i=0;i<260;i++){const u=r()*2-1,a=r()*6.283,q=Math.sqrt(1-u*u);STARS.push({d:[q*Math.cos(a),u*.9+.1,q*Math.sin(a)],s:.18+r()*.3,tw:r()*6.28});}}
+const CLOUDS=[];for(let i=0;i<9;i++)CLOUDS.push({x:hash(i,30)*90-40,z:hash(i,31)*80-35,y:21+hash(i,32)*6,w:4+hash(i,33)*6,d:3+hash(i,34)*4,sp:.35+hash(i,35)*.3});
+function clouds(m,t,E){const c=mix3([70,80,120],[252,252,255],Math.max(E.d,.15));for(const cl of CLOUDS){let x=((cl.x+t*cl.sp+45)%95+95)%95-45;box(m,x,cl.y,cl.z,x+cl.w,cl.y+1,cl.z+cl.d,T.white,[...c,1],{emis:1});box(m,x+cl.w*.25,cl.y+.6,cl.z+cl.d*.2,x+cl.w*.75,cl.y+1.6,cl.z+cl.d*.8,T.white,[...c,1],{emis:1});}}
+function skyObjects(m,t,E,eye,skyT){
+  const starA=clamp(1-E.d*1.7,0,1);
+  if(starA>0)for(const s of STARS){const a=starA*(.65+.35*Math.sin(t*2.3+s.tw));quad(m,eye[0]+s.d[0]*150,eye[1]+s.d[1]*150,eye[2]+s.d[2]*150,s.s,T.glow,[255,255,235,a]);}
+  // sun / moon travel east to west; kept in the upper part of the view so they are visible from the default camera angle
+  const c=cyc(skyT===undefined?t:skyT),topEl=-cam.pitch+FOV/2*.62;
+  const body=(p,tile,size,col)=>{if(p<0||p>1)return;const az=0.95+Math.PI*p,el=topEl+.1*Math.sin(Math.PI*p);const ce=Math.cos(el);
+    const x=eye[0]+Math.sin(az)*ce*140,y=eye[1]+Math.sin(el)*140,z=eye[2]-Math.cos(az)*ce*140;
+    quad(m,x,y,z,size*2.4,T.glow,[col[0],col[1],col[2],.35]);quad(m,x,y,z,size,tile,[255,255,255,1]);};
+  body(((c>=CYCLE-10?c-CYCLE:c)+6)/(DAYLEN+10),T.sun,6,[255,220,120]);
+  body(((c<10?c+CYCLE:c)-(DAYLEN-6))/(CYCLE-DAYLEN+10),T.moon,5,[190,210,255]);
+}
+
+// ------------------------------------------------------------------ game state
+const NAMES=['Pip','Moss','Clover','Bram','Juniper','Fennel','Tansy','Wren','Basil','Poppy','Sorrel','Figgy'];
+const VCOL=[[140,95,55],[238,238,230],[150,78,172],[86,152,70],[220,150,60],[70,130,200],[200,90,90],[120,120,120]];
+const HUTSET=new Set(HUT.map(e=>key(e.x,e.y,e.z)));
+const PUFFC={log:[150,110,70],leaves:[70,150,50],rock:[150,150,150],stone:[150,150,150],sand:[230,210,150],grass:[110,170,70],dirt:[134,96,66],path:[160,136,92],planks:[190,150,95],glass:[220,240,250],roof:[180,80,50],door:[120,80,45],torch:[255,200,90]};
+let won=false,wonT=0,winShown=false;
+let inv,villagers,zombies,fx,simT=START,gameOver,gameOverT,Tc,nightNum,spawnLeft,spawnQuota,nextSpawn,zTimer,newVillAt,nameN,zid,stats,mining,bot;
+function resetGame(){
+  rnd=mulberry(20260929);world=new Map(base);worldVersion++;computeNav();
+  inv={};for(const it of ITEMS)inv[it.id]=0;if(LV.inv)for(const k in LV.inv)if(k in inv)inv[k]=LV.inv[k]|0;
+  won=false;wonT=0;winShown=false;
+  villagers=[];zombies=[];fx=[];simT=START;gameOver=false;gameOverT=0;Tc=null;nightNum=0;spawnLeft=0;spawnQuota=0;nextSpawn=0;zTimer=0;newVillAt=null;nameN=0;zid=0;
+  stats={nights:0,bonks:0,caught:0};mining=null;bot={i:0,act:null,cool:1.2};
+  for(const [x,z] of VSP)addVillager(x+.5,z+.5,false);
+  staticSig='';
+  for(const id of ['over','win']){const ov=document.getElementById(id);if(ov)ov.style.display='none';}
+}
+function addVillager(x,z,announce){const i=nameN++;
+  villagers.push({name:NAMES[i%NAMES.length],col:VCOL[i%VCOL.length],x,z,th:rnd()*6.28,anim:0,spd:0,mode:'walk',alive:true,idle:.5+rnd()*2,goal:-1,field:new Int16Array(NN),fieldVer:-1,pdx:0,pdz:0,chk:{x,z,t:simT},sheltered:false,spot:null,cell:-1});
+  if(announce){fx.push({x,y:.6,z,t:simT,seed:i*91,cols:[[255,255,255],[255,230,140]],n:14,life:.9,s:1.4});toast(`A new villager, ${NAMES[i%NAMES.length]}, moved in!`,'good');}}
+function changed(){worldVersion++;navDirty=true;}
+function occupiedCell(x,z){const hit=e=>e.x+.3>x&&e.x-.3<x+1&&e.z+.3>z&&e.z-.3<z+1;for(const e of villagers)if(e.alive&&hit(e))return true;for(const e of zombies)if(!e.dead&&hit(e))return true;return false;}
+
+// ------------------------------------------------------------------ gathering / placing / crafting
+function gatherBlock(x,y,z,quiet){const k=key(x,y,z),b=world.get(k);if(!b)return false;
+  if(b.type==='water'){if(!quiet)toast("Splash! Water can't be picked up.",'warn');return false;}
+  if(y<-1){if(!quiet)toast("That's the bottom of the island. It can't be dug.",'warn');return false;}
+  if(y===-1&&occupiedCell(x,z)){if(!quiet)toast('Someone is standing there!','warn');return false;}
+  world.delete(k);const got=DROP[b.type]||b.type;
+  if(b.type==='door')for(const dy of [-1,1]){const o=world.get(key(x,y+dy,z));if(o&&o.type==='door')world.delete(key(x,y+dy,z));}
+  inv[got]=(inv[got]||0)+1;flashSlot(got);
+  fx.push({x:x+.5,y,z:z+.5,t:simT,seed:(simT*1000|0)+7,col:PUFFC[b.type]||[150,120,90]});sfx(300,140,.1,'sawtooth',.05);
+  if(b.nat>=0&&b.type==='log'){const s=sites[b.nat];
+    if(!s.blocks.some(([kk,tt])=>{const o=world.get(kk);return tt==='log'&&o&&o.nat===b.nat;})){let n=0;
+      for(const [kk,tt] of s.blocks){const o=world.get(kk);if(tt==='leaves'&&o&&o.nat===b.nat){world.delete(kk);if(n++%3===0){const [a,bb,c]=kk.split(',').map(Number);fx.push({x:a+.5,y:bb,z:c+.5,t:simT+hash(n,3)*.35,seed:n*17,col:[70,150,50]});}}}
+      if(!quiet)toast('Timber! That tree will grow back tomorrow.');}}
+  changed();return true;}
+function placeBlock(x,y,z,item,rot){const k=key(x,y,z);if(world.has(k)||!(inv[item]>0))return false;world.set(k,{type:item,rot,t:simT});
+  if(item==='door'&&y<24&&!world.has(key(x,y+1,z)))world.set(key(x,y+1,z),{type:'door',rot,t:simT});
+  inv[item]--;fx.push({x:x+.5,y,z:z+.5,t:simT,seed:simT*1000|0,col:[235,230,220]});sfx(420,700,.09);changed();return true;}
+const canCraft=r=>Object.entries(r.need).every(([k,n])=>inv[k]>=n);
+function craft(r,times){let made=0;for(let i=0;i<times&&canCraft(r);i++){for(const [k,n] of Object.entries(r.need))inv[k]-=n;inv[r.out]+=r.n;made++;}
+  if(made){flashSlot(r.out);sfx(600,900,.12,'triangle',.08);sel=IIDX[r.out];}return made;}
+
+// ------------------------------------------------------------------ villagers
+const WALK=1.15,RUN=2.75;
+function nearestZombieD(x,z){let best=99;for(const zb of zombies){if(zb.dead||zb.rise<.6||zb.burn>=0)continue;best=Math.min(best,Math.hypot(zb.x-x,zb.z-z));}return best;}
+function pickGoal(v){const c=cellOf(v.x,v.z);
+  for(let tries=0;tries<24&&walkCells.length;tries++){const i=walkCells[Math.floor(rnd()*walkCells.length)],x=gxOf(i),z=gzOf(i);
+    if(AUTO&&bot.i<HUT.length&&inHutArea(x,z))continue;if(Math.hypot(x+.5-v.x,z+.5-v.z)<3)continue;
+    bfs(v.field,[i],passV);if(c<0||v.field[c]>=INF)continue;v.goal=i;v.fieldVer=navVer;return true;}
+  v.goal=-1;return false;}
+function fleeDir(v){let fx_=0,fz=0,near=99;
+  for(const zb of zombies){if(zb.dead||zb.rise<.6||zb.burn>=0)continue;const dx=v.x-zb.x,dz=v.z-zb.z,d=Math.hypot(dx,dz)+.01;near=Math.min(near,d);if(d<13){const w=1/(d*d+.5);fx_+=dx/d*w;fz+=dz/d*w;}}
+  if(near>9)return null;const fl=Math.hypot(fx_,fz)||1;fx_/=fl;fz/=fl;
+  let best=-1e9,bd=null;
+  for(let k=0;k<16;k++){const a=k*Math.PI/8,dx=Math.cos(a),dz=Math.sin(a);let s=dx*fx_+dz*fz;
+    for(const [st,pen] of [[.55,4],[1.2,1.6],[2.2,.8],[3.4,.4]])if(!cellPass(passV,v.x+dx*st,v.z+dz*st))s-=pen;
+    s+=.35*(dx*v.pdx+dz*v.pdz);const cx=CX-v.x,cz=CZ-v.z,cl=Math.hypot(cx,cz)+1;s+=.25*(dx*cx+dz*cz)/cl;
+    if(s>best){best=s;bd=[dx,dz];}}
+  return bd;}
+function updateVillagers(dt){
+  const night=isNight(simT),threat=zombies.some(z=>!z.dead&&z.burn<0),want=night||threat;
+  const alive=villagers.filter(v=>v.alive),byRegion=new Map();
+  for(const v of alive){const c=cellOf(v.x,v.z);v.cell=c;v.sheltered=c>=0&&shelterId[c]>0;
+    if(v.sheltered){const r=shelterId[c];if(!byRegion.has(r))byRegion.set(r,[]);byRegion.get(r).push(v);}else v.spot=null;}
+  for(const [r,list] of byRegion){const R=regions[r];list.forEach((v,k)=>{const ci=R.cells[Math.floor((k+.5)*R.cells.length/list.length)];const j=list.length>R.cells.length?(hash(k,3)-.5)*.5:0;v.spot=[gxOf(ci)+.5+j,gzOf(ci)+.5+j];});}
+  for(const v of alive){
+    let dx=0,dz=0,sp=0,mode='walk';
+    const nd=nearestZombieD(v.x,v.z);
+    if(want){
+      if(v.sheltered){mode='safe';if(v.spot){const ex=v.spot[0]-v.x,ez=v.spot[1]-v.z,d=Math.hypot(ex,ez);if(d>.2){dx=ex/d;dz=ez/d;sp=WALK*.8;}}}
+      else if(v.cell>=0&&toShelter[v.cell]<INF){mode=(night||nd<11)?'panic':'walk';const tg=flowTarget(toShelter,passV,v.x,v.z);
+        if(tg){const ex=tg[0]-v.x,ez=tg[1]-v.z,d=Math.hypot(ex,ez)||1;dx=ex/d;dz=ez/d;}sp=mode==='panic'?RUN:WALK;}
+      else{const f=fleeDir(v);if(f){mode='panic';dx=f[0];dz=f[1];sp=RUN;}else mode='worried';}
+    }
+    if(!want||mode==='worried'){
+      if(v.idle>0)v.idle-=dt;
+      else{
+        if(v.goal<0||v.fieldVer!==navVer){if(v.goal>=0&&passV[v.goal]){bfs(v.field,[v.goal],passV);v.fieldVer=navVer;}else if(!pickGoal(v))v.idle=1;}
+        if(v.goal>=0){const c=cellOf(v.x,v.z);
+          if(c===v.goal){const ex=gxOf(c)+.5-v.x,ez=gzOf(c)+.5-v.z,d=Math.hypot(ex,ez);if(d<.25){v.goal=-1;v.idle=1.2+rnd()*3.2;}else{dx=ex/d;dz=ez/d;sp=WALK;}}
+          else{const tg=flowTarget(v.field,passV,v.x,v.z);if(tg){const ex=tg[0]-v.x,ez=tg[1]-v.z,d=Math.hypot(ex,ez)||1;dx=ex/d;dz=ez/d;sp=WALK;}else{v.goal=-1;v.idle=.5;}}}}
+      if(mode==='worried')sp*=.75;
+    }
+    let sx=0,sz=0;for(const o of alive){if(o===v)continue;const ex=v.x-o.x,ez=v.z-o.z,d=Math.hypot(ex,ez);if(d<.6&&d>1e-4){sx+=ex/d*(.6-d)*4;sz+=ez/d*(.6-d)*4;}}
+    const ox=v.x,oz=v.z;moveEnt(v,dx*sp+sx,dz*sp+sz,dt,passV);
+    v.spd=Math.hypot(v.x-ox,v.z-oz)/dt;v.anim+=dt*v.spd*3.3;v.mode=mode;
+    if(sp>0){let da=Math.atan2(dx,dz)-v.th;da=Math.atan2(Math.sin(da),Math.cos(da));v.th+=da*Math.min(1,dt*10);v.pdx=dx;v.pdz=dz;}
+    if(simT-v.chk.t>2){if(sp>0&&!v.sheltered&&Math.hypot(v.x-v.chk.x,v.z-v.chk.z)<.3){v.goal=-1;v.idle=.3;}v.chk={x:v.x,z:v.z,t:simT};}
+  }
+}
+function catchVillager(v){v.alive=false;stats.caught++;
+  fx.push({x:v.x,y:.7,z:v.z,t:simT,seed:(simT*733|0),cols:[[255,255,255],[235,235,245],v.col],n:16,life:1,s:1.6});
+  toast(`Oh no! ${v.name} got caught and poofed away!`,'bad');sfx(500,120,.5,'triangle',.1);}
+
+// ------------------------------------------------------------------ zombies (original design: green, purple tunic, leaf sprout)
+function spawnZombie(){const alive=villagers.filter(v=>v.alive);
+  const md=i=>{let m=99;const x=gxOf(i)+.5,z=gzOf(i)+.5;for(const v of alive)m=Math.min(m,Math.hypot(v.x-x,v.z-z));for(const zb of zombies)m=Math.min(m,Math.hypot(zb.x-x,zb.z-z)+3);return m;};
+  let x,z;
+  const zc=ZSP.map(([a,b])=>inGrid(a,b)?gi(a,b):-1).filter(i=>i>=0&&passZ[i]);
+  if(zc.length){const far=zc.filter(i=>md(i)>=5),c=far.length?far:zc,i=c[Math.floor(rnd()*c.length)];x=gxOf(i)+.5+(rnd()-.5)*.4;z=gzOf(i)+.5+(rnd()-.5)*.4;}
+  else{let c=edgeCells.filter(i=>md(i)>=9);if(!c.length)c=edgeCells.filter(i=>md(i)>=5);if(!c.length)c=edgeCells;if(!c.length)return;
+    const i=c[Math.floor(rnd()*c.length)];x=gxOf(i)+.5;z=gzOf(i)+.5;}
+  zombies.push({id:zid++,x,z,th:Math.atan2(CX-x,CZ-z),anim:rnd()*6,spd:0,hp:LV.hp,rise:0,burn:-1,burnDur:1,hitT:-9,kbx:0,kbz:0,dead:false});
+  fx.push({x,y:.05,z,t:simT,seed:zid*31,cols:[[120,90,60],[90,70,50]],n:10,life:.9,s:1.1});}
+function computeZField(){const seeds=[];for(const v of villagers)if(v.alive&&!v.sheltered){const c=cellOf(v.x,v.z);if(c>=0)seeds.push(c);}bfs(zField,seeds,passZ);}
+function poofZombie(zb){zb.dead=true;fx.push({x:zb.x,y:.8,z:zb.z,t:simT,seed:(zb.id*977+(simT*10|0)),cols:[[120,170,90],[150,130,170],[235,235,235]],n:14,life:.8,s:1.5});sfx(700,200,.25,'triangle',.08);}
+function bonk(zb,quiet){if(zb.dead||zb.rise<.5)return;zb.hp--;zb.hitT=simT;const e=eyePos(),dx=zb.x-e[0],dz=zb.z-e[2],d=Math.hypot(dx,dz)||1;zb.kbx=dx/d*5;zb.kbz=dz/d*5;
+  fx.push({x:zb.x,y:1.3,z:zb.z,t:simT,seed:(simT*997|0),col:[255,255,255],n:6,s:.7});sfx(190,80,.14,'square',.1);
+  if(zb.hp<=0){poofZombie(zb);stats.bonks++;if(!quiet&&stats.bonks<=3)toast('Bonk! The zombie poofed away!','good');}}
+function updateZombies(dt){
+  const alive=villagers.filter(v=>v.alive),zs=Math.min(1.6,1.1+.08*(nightNum-1))*LV.spd;
+  for(const zb of zombies){if(zb.dead)continue;
+    zb.anim+=dt*(1+zb.spd)*2.2;
+    if(zb.rise<1){zb.rise=Math.min(1,zb.rise+dt/1.2);continue;}
+    if(zb.burn>=0){zb.burn+=dt;if(zb.burn>=zb.burnDur)poofZombie(zb);continue;}
+    let tx=null,tz=null,stop=0;const tg=flowTarget(zField,passZ,zb.x,zb.z);
+    if(tg){tx=tg[0];tz=tg[1];}
+    else{let best=1e9,bv=null;for(const v of alive){const d=Math.hypot(v.x-zb.x,v.z-zb.z)+(v.sheltered?50:0);if(d<best){best=d;bv=v;}}if(bv){tx=bv.x;tz=bv.z;stop=bv.sheltered?1.1:0;}}
+    let dx=0,dz=0,sp=0;
+    if(tx!==null){const ex=tx-zb.x,ez=tz-zb.z,d=Math.hypot(ex,ez);if(d>stop+.05){dx=ex/(d||1);dz=ez/(d||1);sp=zs;}}
+    else{dx=Math.sin(zb.id*1.7+simT*.3);dz=Math.cos(zb.id*1.7+simT*.3);sp=zs*.4;}
+    let sx=0,sz=0;for(const o of zombies){if(o===zb||o.dead)continue;const ex=zb.x-o.x,ez=zb.z-o.z,d=Math.hypot(ex,ez);if(d<.75&&d>1e-4){sx+=ex/d*(.75-d)*3;sz+=ez/d*(.75-d)*3;}}
+    const ox=zb.x,oz=zb.z;moveEnt(zb,dx*sp+sx+zb.kbx,dz*sp+sz+zb.kbz,dt,passZ);
+    const k=Math.exp(-dt*7);zb.kbx*=k;zb.kbz*=k;zb.spd=Math.hypot(zb.x-ox,zb.z-oz)/dt;
+    if(sp>0){let da=Math.atan2(dx,dz)-zb.th;da=Math.atan2(Math.sin(da),Math.cos(da));zb.th+=da*Math.min(1,dt*5);}
+    for(const v of alive)if(v.alive&&!v.sheltered&&Math.hypot(v.x-zb.x,v.z-zb.z)<.62)catchVillager(v);
+  }
+  zombies=zombies.filter(z=>!z.dead);
+}
+
