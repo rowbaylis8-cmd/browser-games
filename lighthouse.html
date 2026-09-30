@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>The Lighthouse at Cape Ember</title>
+<style>
+  :root { --bg:#0b1220; --panel:#131d33; --text:#e6ecf5; --muted:#8fa0bf; --accent:#ffb347; }
+  * { box-sizing: border-box; }
+  body { margin:0; min-height:100vh; background: radial-gradient(circle at 70% 10%, #1d2b4d, var(--bg) 60%);
+         color:var(--text); font-family: Georgia, "Times New Roman", serif; display:flex; justify-content:center; }
+  #rain { position:fixed; inset:0; pointer-events:none; z-index:0; }
+  main { position:relative; z-index:1; max-width:720px; width:100%; padding:32px 20px 60px; }
+  h1 { color:var(--accent); font-size:1.9rem; margin:0 0 4px; text-shadow:0 0 18px rgba(255,179,71,.5); }
+  .sub { color:var(--muted); margin:0 0 20px; font-style:italic; }
+  .panel { background:rgba(19,29,51,.92); border:1px solid #24345a; border-radius:14px; padding:22px; box-shadow:0 10px 30px rgba(0,0,0,.4); }
+  #text p { line-height:1.6; font-size:1.08rem; margin:0 0 12px; }
+  #choices { display:flex; flex-direction:column; gap:10px; margin-top:18px; }
+  button { font:inherit; text-align:left; background:#1c2a4a; color:var(--text); border:1px solid #2e4474;
+           border-radius:10px; padding:12px 14px; cursor:pointer; transition:.15s; }
+  button:hover { background:#27396a; border-color:var(--accent); transform:translateX(4px); }
+  #status { display:flex; gap:16px; flex-wrap:wrap; margin-bottom:14px; color:var(--muted); font-size:.95rem; }
+  #status b { color:var(--text); }
+  .bar { display:inline-block; width:80px; height:8px; background:#2a3656; border-radius:4px; vertical-align:middle; overflow:hidden; }
+  .bar > span { display:block; height:100%; background:var(--accent); transition:width .3s; }
+  .end { color:var(--accent); font-weight:bold; }
+  </style>
+</head>
+<body>
+<canvas id="rain"></canvas>
+<main>
+  <h1>🌊 The Lighthouse at Cape Ember</h1>
+  <p class="sub">A short choose-your-path adventure</p>
+  <div class="panel">
+    <div id="status"></div>
+    <div id="text"></div>
+    <div id="choices"></div>
+  </div>
+</main>
+<script>
+const state = { battery: 3, items: new Set(["pocketknife", "soggy sandwich"]) };
+const has = i => state.items.has(i);
+const add = i => state.items.add(i);
+
+const scenes = {
+  start: {
+    text: () => [
+      "It's a stormy night on the South Australian coast. Your little boat has washed up on a rocky beach.",
+      "The only light for kilometres comes from an old lighthouse on the cliff. That's odd, because it was shut down fifty years ago."
+    ],
+    choices: [
+      ["Climb the slippery cliff path to the lighthouse", "cliff"],
+      ["Explore the sea cave where something is knocking", "cave"],
+      ["Search the wreck of your boat", "wreck"]
+    ]
+  },
+  wreck: {
+    enter: () => { add("rope"); add("spare battery"); },
+    text: () => [
+      "You dig through the splintered hull. Under a tarp you find a coil of rope and, tucked in a dry bag, a spare torch battery.",
+      "Waves are creeping up the sand. Time to move."
+    ],
+    choices: [
+      ["Head up the cliff path", "cliff"],
+      ["Go check out the sea cave", "cave"]
+    ]
+  },
+  cliff: {
+    text: () => has("rope")
+      ? ["The path is slick with rain. Halfway up, a chunk of rock crumbles, but you'd tied your rope around a post and you catch yourself.",
+         "You haul yourself over the top. The lighthouse door stands ajar, light spilling out."]
+      : ["The path is slick with rain. Halfway up, the rock gives way under your boot and you slide back down to the beach, scraped but okay.",
+         "Maybe there's something that would make this climb safer."],
+    choices: () => has("rope")
+      ? [["Step inside the lighthouse", "door"]]
+      : [["Go back and search the boat", "wreck"], ["Try the sea cave instead", "cave"]]
+  },
+  cave: {
+    enter: () => { state.battery -= 1; },
+    text: () => [
+      "You duck into the cave. Your torch flickers as you follow the knocking deeper in.",
+      "Tied to a rusted ring is a small wooden rowboat, bumping against the rock with every wave. Carved on its seat: KEEPER — THE KEY IS UNDER THE LAMP.",
+      "Behind the boat, narrow stone stairs spiral upward into the dark."
+    ],
+    choices: [
+      ["Climb the hidden stairs", "stairs"],
+      ["Head back to the beach", "start"]
+    ]
+  },
+  stairs: {
+    enter: () => { state.battery -= 1; },
+    text: () => state.battery > 0
+      ? ["You climb, and climb. Your torch dims but holds. The stairs end at a trapdoor, and you push it open into the base of the lighthouse."]
+      : has("spare battery")
+        ? ["Your torch dies! You fumble in the dark and swap in the spare battery. Light again.",
+           "The stairs end at a trapdoor, and you push it open into the base of the lighthouse."]
+        : ["Your torch dies. In total darkness you lose your footing and have to slide back down to the cave.",
+           "You'll need more light to make it up there."],
+    choices: () => (state.battery > 0 || has("spare battery"))
+      ? [["Look around the lighthouse", "door"]]
+      : [["Go back to the beach", "start"]]
+  },
+  door: {
+    text: () => [
+      "Inside, the room is warm. A kettle is still steaming on a tiny stove. Someone has been here very recently.",
+      "A logbook lies open on the table. The last entry reads: 'If the light goes out, the ships are lost. Keep it burning.'",
+      "A spiral staircase leads up to the lamp room."
+    ],
+    choices: [
+      ["Read more of the logbook", "log"],
+      ["Climb to the lamp room", "lamp"]
+    ]
+  },
+  log: {
+    text: () => [
+      "The older pages describe a keeper who never left, even after the lighthouse was officially closed. The handwriting is shaky near the end.",
+      "A loose page falls out: a sketch of the lamp with an arrow pointing underneath it."
+    ],
+    choices: [["Climb to the lamp room", "lamp"]]
+  },
+  lamp: {
+    text: () => [
+      "The great lamp is sputtering, about to go out. Out on the black sea you spot the lights of a fishing boat heading straight for the rocks.",
+      "Under the lamp's base you can see a small brass lockbox."
+    ],
+    choices: [
+      ["Pry the lockbox open with your pocketknife", "box"],
+      ["Wave your torch out the window to signal the boat", "signal"],
+      ["Offer your soggy sandwich to the lamp (why not?)", "sandwich"]
+    ]
+  },
+  box: {
+    text: () => [
+      "The lock pops open. Inside is a tin of lamp oil and a note: 'For the next keeper.'",
+      "You pour the oil into the lamp. It roars back to life, a beam sweeping across the waves. The fishing boat turns just in time.",
+      "Downstairs, you hear the kettle whistle. Looks like the lighthouse has a new keeper."
+    ],
+    ending: "🏆 You saved the boat and became the Keeper of Cape Ember."
+  },
+  signal: {
+    text: () => state.battery > 0 || has("spare battery")
+      ? ["You flash your torch frantically. The boat's horn blasts in reply, and it swings away from the rocks.",
+         "The ships are safe tonight, but the lamp flickers out behind you. Someone will need to fix it tomorrow."]
+      : ["You click your torch, but it's dead. The boat keeps coming...",
+         "At the last second a wave turns it aside. Lucky. Very lucky."],
+    ending: "⚓ You survived the night. Not a perfect ending, though. Try again to find the best one."
+  },
+  sandwich: {
+    text: () => [
+      "You place the soggy sandwich reverently on the lamp. Nothing happens. The lamp looks, if anything, disappointed.",
+      "Outside, the boat is still heading for the rocks."
+    ],
+    enter: () => state.items.delete("soggy sandwich"),
+    choices: [
+      ["Okay, pry open the lockbox", "box"],
+      ["Signal the boat with your torch", "signal"]
+    ]
+  }
+};
+
+const $ = id => document.getElementById(id);
+
+function renderStatus() {
+  const pct = Math.max(0, Math.min(3, state.battery)) / 3 * 100;
+  $("status").innerHTML =
+    `<span>🔦 Torch <span class="bar"><span style="width:${pct}%"></span></span></span>` +
+    `<span>🎒 <b>${[...state.items].join(", ") || "nothing"}</b></span>`;
+}
+
+function go(id) {
+  const s = scenes[id];
+  if (s.enter) s.enter();
+  renderStatus();
+  const lines = typeof s.text === "function" ? s.text() : s.text;
+  const t = $("text");
+  t.innerHTML = lines.map(l => `<p>${l}</p>`).join("") + (s.ending ? `<p class="end">${s.ending}</p>` : "");
+  const c = $("choices");
+  c.innerHTML = "";
+  const choices = s.ending ? [["Play again", "__restart"]] : (typeof s.choices === "function" ? s.choices() : s.choices);
+  choices.forEach(([label, next]) => {
+    const b = document.createElement("button");
+    b.textContent = "▸ " + label;
+    b.onclick = () => next === "__restart" ? restart() : go(next);
+    c.appendChild(b);
+  });
+}
+
+function restart() {
+  state.battery = 3;
+  state.items = new Set(["pocketknife", "soggy sandwich"]);
+  go("start");
+}
+
+// Rain effect
+const cv = $("rain"), cx = cv.getContext("2d");
+let drops = [];
+function resize() { cv.width = innerWidth; cv.height = innerHeight;
+  drops = Array.from({length: 180}, () => ({x: Math.random()*cv.width, y: Math.random()*cv.height, l: 8+Math.random()*14, v: 6+Math.random()*8})); }
+addEventListener("resize", resize); resize();
+(function rain() {
+  cx.clearRect(0,0,cv.width,cv.height);
+  cx.strokeStyle = "rgba(170,190,230,.35)"; cx.lineWidth = 1;
+  cx.beginPath();
+  for (const d of drops) { cx.moveTo(d.x, d.y); cx.lineTo(d.x-2, d.y+d.l); d.y += d.v; d.x -= .6;
+    if (d.y > cv.height) { d.y = -20; d.x = Math.random()*cv.width; } }
+  cx.stroke();
+  requestAnimationFrame(rain);
+})();
+
+go("start");
+</script>
+</body>
+</html>
