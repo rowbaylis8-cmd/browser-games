@@ -1,0 +1,14 @@
+{
+  "name": "Soccer Showdown",
+  "short_name": "Soccer",
+  "description": "A top-down soccer game for 2 players on one keyboard or 1 player vs the computer.",
+  "start_url": "soccer.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "landscape",
+  "background_color": "#0d1b12",
+  "theme_color": "#2e8b3a",
+  "icons": [
+    { "src": "soccer-icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }
+  ]
+}

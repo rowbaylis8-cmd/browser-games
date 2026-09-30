@@ -1,0 +1,13 @@
+{
+  "name": "Browser Games Arcade",
+  "short_name": "Games",
+  "description": "All the browser games in one place.",
+  "start_url": "index.html",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#ff9f68",
+  "theme_color": "#8f7bff",
+  "icons": [
+    { "src": "arcade-icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }
+  ]
+}
