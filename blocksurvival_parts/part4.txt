@@ -1,0 +1,175 @@
+  for(let i=0;i+4<L.b.length;i+=5)E.blocks.set(key(L.b[i],L.b[i+1],L.b[i+2]),[L.b[i+3],L.b[i+4]|0]);
+  E.sites=L.s.map(s=>s.slice());E.vil=L.vil.map(p=>p.slice());E.zsp=L.zsp.map(p=>p.slice());return E;}
+function flatGround(E,size,top){const S=SIZES[size];for(const k of [...E.blocks.keys()]){if(+k.split(',')[1]<=-1)E.blocks.delete(k);}
+  const ti=BTI[top],under=(top==='sand'||top==='water')?BTI.sand:(top==='stone'||top==='rock')?BTI.stone:BTI.dirt;
+  for(let x=S.x0;x<=S.x1;x++)for(let z=S.z0;z<=S.z1;z++){if(!inShape(S,x,z))continue;E.blocks.set(key(x,-1,z),[ti,0]);E.blocks.set(key(x,-2,z),[under,0]);E.blocks.set(key(x,-3,z),[BTI.dirt,0]);}}
+function markerAtE(E,x,z){return E.vil.some(p=>p[0]===x&&p[1]===z)||E.zsp.some(p=>p[0]===x&&p[1]===z);}
+function stampHut(E,px,py,pz,useWorld){let n=0;const free=(x,y,z)=>inLB(x,y,z)&&!E.blocks.has(key(x,y,z))&&!(useWorld&&world.has(key(x,y,z)))&&!(y<=1&&y>=py&&markerAtE(E,x,z));
+  for(const e of HUT){const x=px+e.x-3,y=py+e.y,z=pz+e.z-2;if(!free(x,y,z))continue;
+    if(e.type==='door'){if(!free(x,y+1,z))continue;E.blocks.set(key(x,y+1,z),[BTI.door,0]);}
+    E.blocks.set(key(x,y,z),[BTI[e.type],0]);n++;}return n;}
+const NEWPOS={small:{t:[[-2,-2],[8,-2],[-2,7],[8,7]],r:[[3,-2],[3,7]]},medium:{t:[[-6,-6],[12,-6],[-6,11],[12,11]],r:[[3,-6],[3,11]]},large:{t:[[-9,-9],[15,-9],[-9,15],[15,15]],r:[[3,-9],[3,15]]}};
+function newLevelED(size){const E=newED(size);flatGround(E,E.size,'grass');const q=NEWPOS[E.size];for(const [x,z] of q.t)E.sites.push([0,x,0,z]);for(const [x,z] of q.r)E.sites.push([1,x,0,z]);
+  E.vil=[[2,2],[4,2],[3,4]];E.name=nextName();return E;}
+function classicED(){buildDefault();const E=newED('medium');for(const [k,b] of base)if(!(b.nat>=0))E.blocks.set(k,[BTI[b.type],0]);
+  for(const [x,z] of TREES)E.sites.push([0,x,0,z]);for(const [x,z] of ROCKS)E.sites.push([1,x,0,z]);for(const [x,z] of [[13,13],[10,15],[15,10]])E.sites.push([2,x,0,z]);
+  E.vil=[[-1,-3],[7,-2],[8,6],[-2,7]];E.name='Classic Island (my copy)';return E;}
+
+// ------------------------------------------------------------------ built-in example levels
+function exTiny(){const E=newED('small');E.name='Tiny Island';flatGround(E,'small','grass');
+  for(const [k] of [...E.blocks]){const [x,y,z]=k.split(',').map(Number);if(y>=-2&&x+z>=15)E.blocks.set(k,[BTI.sand,0]);}
+  for(const [x,z] of [[-2,-2],[8,-3],[-3,6]])E.sites.push([0,x,0,z]);for(const [x,z] of [[6,-2],[-2,2]])E.sites.push([1,x,0,z]);E.sites.push([2,8,0,8]);
+  E.vil=[[2,2],[4,3]];E.zsp=[[-3,8],[9,-3]];E.set={nights:1,day:'normal',diff:'easy',zombies:2,more:0};E.inv={planks:16,door:1,torch:2,roof:4};return edToLevel(E);}
+function exForest(){const E=newED('medium');E.name='Forest Night';flatGround(E,'medium','grass');
+  for(let x=4;x<=9;x++)for(let z=6;z<=10;z++){const edge=x===4||x===9||z===6||z===10;E.blocks.set(key(x,-1,z),[edge?BTI.sand:BTI.water,0]);if(!edge)E.blocks.set(key(x,-2,z),[BTI.sand,0]);}
+  for(const [x,z] of [[-7,-7],[-3,-8],[1,-8],[6,-8],[10,-7],[14,-6],[-8,-3],[13,-2],[-8,2],[14,3],[-7,7],[-3,11],[1,12],[13,8],[11,12],[9,-3]])E.sites.push([0,x,0,z]);
+  for(const [x,z] of [[-5,-2],[10,1]])E.sites.push([1,x,0,z]);E.sites.push([2,2,0,9]);
+  for(const [x,z] of [[3,-3],[-2,1],[8,4]])E.blocks.set(key(x,0,z),[BTI.torch,0]);
+  E.vil=[[1,1],[5,1],[1,3],[5,3]];E.zsp=[[-9,-9],[15,-9],[-9,14],[15,14]];E.set={nights:3,day:'short',diff:'normal',zombies:3,more:1};E.inv={torch:4,planks:6};return edToLevel(E);}
+function exSiege(){const E=newED('large');E.name='Zombie Siege';flatGround(E,'large','grass');
+  for(let z=-12;z<=-2;z++)E.blocks.set(key(3,-1,z),[BTI.path,0]);
+  stampHut(E,3,0,2,false);
+  for(let i=0;i<5;i++)for(const [x,z] of [[-5+i,-6],[12-i,-6],[-5+i,11],[12-i,11],[-5,-6+i],[-5,11-i],[12,-6+i],[12,11-i]]){E.blocks.set(key(x,0,z),[BTI.stone,0]);if(i<2)E.blocks.set(key(x,1,z),[BTI.stone,0]);}
+  for(const [x,z] of [[-9,-8],[-2,-10],[9,-10],[15,-6],[-10,1],[16,4],[-8,14],[0,15],[10,15],[16,12]])E.sites.push([0,x,0,z]);
+  for(const [x,z] of [[-7,-2],[14,-2],[-7,7],[14,8],[7,-9],[-1,14]])E.sites.push([1,x,0,z]);for(const [x,z] of [[15,17],[-9,17]])E.sites.push([2,x,0,z]);
+  E.vil=[[3,2],[0,-3],[7,-3],[8,7],[-2,7]];E.zsp=[[-12,-12],[3,-12],[18,-12],[-12,3],[18,3],[-12,18],[3,18],[18,18]];
+  E.set={nights:5,day:'normal',diff:'hard',zombies:4,more:2};E.inv={planks:12,stone:8,torch:6,roof:4,door:1};return edToLevel(E);}
+const EXAMPLES=[{id:'ex-tiny',make:exTiny,blurb:'Easy starter: survive 1 night.'},{id:'ex-forest',make:exForest,blurb:'Lots of trees, a pond and short days.'},{id:'ex-siege',make:exSiege,blurb:'Hard! Hold the hut for 5 nights.'}];
+const exCache={};function exLevel(e){return exCache[e.id]||(exCache[e.id]=e.make());}
+
+// ------------------------------------------------------------------ saving (localStorage)
+const LSKEY='blocksurvival.levels.v1';
+function loadStore(){try{const a=JSON.parse(localStorage.getItem(LSKEY)||'[]');return Array.isArray(a)?a.filter(e=>e&&typeof e.id==='string'&&e.level&&Array.isArray(e.level.b)):[];}catch(e){return [];}}
+function saveStore(a){try{localStorage.setItem(LSKEY,JSON.stringify(a));return true;}catch(e){toast('Could not save: the browser storage is full or turned off.','bad');return false;}}
+function storeLevel(L,id){const a=loadStore();id=id||('L'+Date.now().toString(36)+Math.floor(Math.random()*1e6).toString(36));const e={id,level:L,updated:Date.now()};
+  const i=a.findIndex(q=>q.id===id);if(i>=0)a[i]=e;else a.unshift(e);return saveStore(a)?id:null;}
+function renameStored(id,name){const a=loadStore(),e=a.find(q=>q.id===id);if(!e)return;e.level.name=name;e.updated=Date.now();saveStore(a);if(ED&&ED.id===id)ED.name=name;}
+function deleteStored(id){saveStore(loadStore().filter(q=>q.id!==id));if(ED&&ED.id===id)ED.id=null;}
+function nextName(){const names=new Set(loadStore().map(e=>e.level.name));let i=1;while(names.has('My Level '+i))i++;return 'My Level '+i;}
+function uniqueName(n){const names=new Set(loadStore().map(e=>e.level.name));if(!names.has(n))return n;let i=2;while(names.has(`${n} (${i})`))i++;return cleanName(`${n.slice(0,34)} (${i})`);}
+
+// ------------------------------------------------------------------ checking levels that come from codes / files
+function sanitizeLevel(o){
+  if(!o||typeof o!=='object'||o.fmt!=='blocksurvival-level'||!Array.isArray(o.b))throw new Error("That doesn't look like a BlockSurvival level.");
+  const num=(v,a,b,d)=>{v=Math.round(Number(v));return Number.isFinite(v)?clamp(v,a,b):d;};
+  const isI=(v,a,b)=>Number.isInteger(v)&&v>=a&&v<=b;
+  const s=o.set&&typeof o.set==='object'?o.set:{},iv=o.inv&&typeof o.inv==='object'?o.inv:{};
+  const L={fmt:'blocksurvival-level',v:1,name:cleanName(o.name)||'Shared Level',size:SIZES[o.size]?o.size:'medium',
+    set:{nights:num(s.nights,1,10,3),day:DAYS[s.day]?s.day:'normal',diff:DIFF[s.diff]?s.diff:'normal',zombies:num(s.zombies,0,15,3),more:num(s.more,0,4,1)},inv:{},b:[],s:[],vil:[],zsp:[]};
+  for(const id of INV_IDS){const n=num(iv[id],0,99,0);if(n)L.inv[id]=n;}
+  const seen=new Set();
+  for(let i=0;i+4<o.b.length&&L.b.length<5*40000;i+=5){const [x,y,z,t,r]=o.b.slice(i,i+5);if(!isI(x,LX0,LX1)||!isI(z,LX0,LX1)||!isI(y,LY0,LY1)||!isI(t,0,BT.length-1))continue;
+    const k=key(x,y,z);if(seen.has(k))continue;seen.add(k);L.b.push(x,y,z,t,r===1?1:0);}
+  const pts=(a,max)=>{const out=[],sn=new Set();if(Array.isArray(a))for(const p of a){if(out.length>=max)break;if(!Array.isArray(p)||!isI(p[0],LX0,LX1)||!isI(p[1],LX0,LX1))continue;const k=p[0]+','+p[1];if(sn.has(k))continue;sn.add(k);out.push([p[0],p[1]]);}return out;};
+  if(Array.isArray(o.s))for(const q of o.s){if(L.s.length>=400)break;if(Array.isArray(q)&&isI(q[0],0,SITEK.length-1)&&isI(q[1],LX0,LX1)&&isI(q[2],LY0,LY1)&&isI(q[3],LX0,LX1))L.s.push([q[0],q[1],q[2],q[3]]);}
+  L.vil=pts(o.vil,12);L.zsp=pts(o.zsp,16);return L;}
+
+// ------------------------------------------------------------------ share codes: JSON -> deflate -> base64url, prefixed "BSL1Z-" (or "BSL1-" uncompressed)
+function b64enc(u8){let s='';for(let i=0;i<u8.length;i+=0x8000)s+=String.fromCharCode.apply(null,u8.subarray(i,i+0x8000));return btoa(s).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');}
+function b64dec(str){str=str.replace(/-/g,'+').replace(/_/g,'/');while(str.length%4)str+='=';const s=atob(str),u=new Uint8Array(s.length);for(let i=0;i<s.length;i++)u[i]=s.charCodeAt(i);return u;}
+async function pipeBytes(u8,stream){return new Uint8Array(await new Response(new Blob([u8]).stream().pipeThrough(stream)).arrayBuffer());}
+async function encodeLevel(L){const raw=new TextEncoder().encode(JSON.stringify(L));
+  if(typeof CompressionStream!=='undefined'){try{return 'BSL1Z-'+b64enc(await pipeBytes(raw,new CompressionStream('deflate-raw')));}catch(e){}}
+  return 'BSL1-'+b64enc(raw);}
+async function decodeLevel(text){text=String(text||'').trim();if(!text)throw new Error('Paste a level code first (or load a file).');
+  let json;
+  if(text[0]==='{')json=text;
+  else{const m=text.replace(/\s+/g,'').match(/^BSL1(Z?)-([A-Za-z0-9_-]+)$/);if(!m)throw new Error("That code doesn't look right. Level codes start with BSL1.");
+    try{let u=b64dec(m[2]);if(m[1]){if(typeof DecompressionStream==='undefined')throw 0;u=await pipeBytes(u,new DecompressionStream('deflate-raw'));}json=new TextDecoder().decode(u);}
+    catch(e){throw new Error('That code seems broken or cut off. Try copying all of it again.');}}
+  let o;try{o=JSON.parse(json);}catch(e){throw new Error('That level seems broken or cut off.');}
+  return sanitizeLevel(o);}
+function fileSafe(n){return (n.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'')||'level').slice(0,40);}
+function downloadLevel(L){const a=mk('a',{href:URL.createObjectURL(new Blob([JSON.stringify(L)],{type:'application/json'})),download:fileSafe(L.name)+'.blocksurvival.json'});
+  document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove();},1500);toast('Level file downloaded!','good');}
+function copyText(ta,text){const done=()=>toast('Code copied! Paste it to a friend.','good');
+  const fallback=()=>{ta.focus();ta.select();try{document.execCommand('copy');done();}catch(e){toast('Select the code and copy it by hand (Ctrl+C).','warn');}};
+  if(navigator.clipboard&&navigator.clipboard.writeText)navigator.clipboard.writeText(text).then(done,fallback);else fallback();}
+
+// ------------------------------------------------------------------ modal dialogs
+function openModal(...kids){const c=$('mdcard');c.innerHTML='';c.append(...kids.flat().filter(Boolean));$('modal').style.display='flex';modalOpen=true;down=null;}
+function closeModal(){$('modal').style.display='none';modalOpen=false;}
+function ask(title,msg,btns){openModal(mk('h2',{text:title}),mk('p',{text:msg}),mk('div',{class:'mfoot'},btns.map(b=>sb(b.cls||'c-grey',b.label,()=>{closeModal();if(b.fn)b.fn();}))));}
+async function showExport(L){let code;try{code=await encodeLevel(L);}catch(e){toast('Could not make a share code.','bad');return;}
+  const ta=mk('textarea',{rows:'5',readonly:'',id:'excode',spellcheck:'false'});ta.value=code;
+  openModal(mk('h2',{text:`Share "${L.name}"`}),mk('p',{text:`Copy this code and send it to a friend. They open BlockSurvival, press Import a Level and paste it in. (${code.length.toLocaleString()} letters)`}),ta,
+    mk('div',{class:'mfoot'},sb('c-green','Copy code',()=>copyText(ta,code)),sb('c-blue','Download .json file',()=>downloadLevel(L)),sb('c-grey','Close',closeModal)));
+  ta.scrollTop=0;}
+$('modal').addEventListener('pointerdown',e=>{if(e.target===$('modal'))closeModal();});
+
+// ------------------------------------------------------------------ title menu, My Levels, import
+function showMenu(screen,arg){closeModal();
+  if(mode!=='menu'){mode='menu';applyLevel(null);resetGame();Object.assign(cam,{yaw:-0.62,pitch:.5,dist:42,target:[3,1,2.5]});down=null;hover=null;}
+  setUI();const c=$('mcard');c.innerHTML='';c.scrollTop=0;
+  if(screen==='levels')menuLevels(c,arg);else if(screen==='import')menuImport(c);else if(screen==='make')menuMake(c);else menuMain(c);}
+function menuMain(c){
+  c.append(mk('h1',null,'Block',mk('span',{text:'Survival'})),mk('div',{class:'tagline',text:'Gather, build a shelter, and keep the villagers safe through the night!'}),
+    mb('c-green',faceIcon(T.vface),'Play','The classic island: survive as many nights as you can',()=>startPlay(null),'mplay'),
+    mb('c-orange',hutIcon(),'Make a Level','Build your own island with the level editor',()=>showMenu('make'),'mmake'),
+    mb('c-blue',treeIcon(),'My Levels','Play, edit and share levels (3 examples inside)',()=>showMenu('levels'),'mlevels'),
+    mb('c-purple',icon('glass'),'Import a Level',"Paste a friend's level code or load a level file",()=>showMenu('import'),'mimport'),
+    mk('div',{class:'mfoot'},mk('a',{href:'?autoplay=1',text:'Watch the demo'}),mk('span',{style:'font-size:12px;color:#7a6650;align-self:center',text:'Tip: your levels are saved in this browser.'})));}
+function menuMake(c){
+  c.append(mk('h2',{text:'Make a Level'}),mk('p',{text:'How should your island start? You can change everything later: blocks, trees, villagers, zombies and the rules.'}),
+    mk('div',{class:'choices'},
+      mb('c-green',icon('grass'),'Small island','Quick and cosy',()=>openEditor(newLevelED('small')),'mksmall'),
+      mb('c-green',icon('grass'),'Medium island','Room to build',()=>openEditor(newLevelED('medium')),'mkmedium'),
+      mb('c-green',icon('grass'),'Large island','Huge adventures',()=>openEditor(newLevelED('large')),'mklarge'),
+      mb('c-orange',treeIcon(),'Copy the classic','Start from the normal island',()=>openEditor(classicED()),'mkclassic')),
+    mk('div',{class:'mfoot'},sb('c-grey','Back',()=>showMenu('main'))));}
+function levelMeta(L){return `${SIZES[L.size].label} island, survive ${plural(L.set.nights,'night')}, ${plural(L.vil.length,'villager')}, ${DIFF[L.set.diff].label}`;}
+const TCOL={grass:'#5fae3a',dirt:'#86603f',sand:'#ead8a0',stone:'#8a8a8c',rock:'#9a9a9d',log:'#6a5032',leaves:'#3f8e2e',planks:'#ba925c',glass:'#bfe3f5',door:'#70492a',roof:'#ac482e',path:'#a0885c',torch:'#ffcf5a',water:'#3f8fe0',tree:'#2f7a24'};
+function thumb(L){const N=LX1-LX0+1,S=3,c=document.createElement('canvas');c.width=c.height=N*S;const x=c.getContext('2d');x.fillStyle='#9cd0f5';x.fillRect(0,0,N*S,N*S);
+  const top=new Map(),put=(X,Y,Z,t)=>{const k=X+','+Z,o=top.get(k);if(!o||Y>=o[0])top.set(k,[Y,t]);};
+  for(let i=0;i+4<L.b.length;i+=5)put(L.b[i],L.b[i+1],L.b[i+2],BT[L.b[i+3]]);
+  for(const [k,X,Y,Z] of L.s){if(k===0){for(let dx=-2;dx<=2;dx++)for(let dz=-2;dz<=2;dz++)if(Math.abs(dx)+Math.abs(dz)<4)put(X+dx,Y+5,Z+dz,'tree');}else put(X,Y+1,Z,k===1?'rock':'sand');}
+  for(const [k,[,t]] of top){const [X,Z]=k.split(',').map(Number);x.fillStyle=TCOL[t]||'#888';x.fillRect((X-LX0)*S,(Z-LX0)*S,S,S);}
+  const dot=(p,col)=>{x.fillStyle='#000';x.fillRect((p[0]-LX0)*S-2,(p[1]-LX0)*S-2,S+4,S+4);x.fillStyle=col;x.fillRect((p[0]-LX0)*S-1,(p[1]-LX0)*S-1,S+2,S+2);};
+  L.vil.forEach(p=>dot(p,'#ffe066'));L.zsp.forEach(p=>dot(p,'#c070ff'));return c;}
+function levelRow(L,o){
+  const name=mk('div',{class:'ln',text:L.name}),btns=mk('div',{class:'lb'});
+  btns.append(sb('c-green','Play',()=>startPlay(L,{id:o.id})),
+    sb('c-orange',o.builtin?'Edit a copy':'Edit',()=>{const E=levelToED(L,o.builtin?null:o.id);if(o.builtin)E.name=uniqueName(L.name+' (my copy)');openEditor(E);}),
+    sb('c-purple','Share',()=>showExport(L)));
+  if(!o.builtin){
+    btns.append(sb('c-blue','Rename',()=>{const inp=mk('input',{maxlength:'40'});inp.value=L.name;
+      const ok=()=>{const v=cleanName(inp.value);if(v)renameStored(o.id,v);showMenu('levels',o.id);};
+      inp.addEventListener('keydown',e=>{if(e.key==='Enter')ok();else if(e.key==='Escape')showMenu('levels',o.id);});
+      name.replaceWith(mk('div',{class:'ln'},inp,' ',sb('c-green','OK',ok)));inp.focus();inp.select();}));
+    const del=sb('c-red','Delete',()=>{if(del.dataset.sure){deleteStored(o.id);toast(`Deleted "${L.name}".`);showMenu('levels');return;}
+      del.dataset.sure='1';del.textContent='Really delete?';setTimeout(()=>{if(del.isConnected){delete del.dataset.sure;del.textContent='Delete';}},3500);});
+    btns.append(del);}
+  return mk('div',{class:'lrow'+(o.hi?' hi':''),'data-id':o.id},thumb(L),mk('div',{class:'li'},name,mk('div',{class:'lm',text:levelMeta(L)+(o.blurb?'. '+o.blurb:'')}),btns));}
+function menuLevels(c,hi){const mine=loadStore();
+  c.append(mk('h2',{text:'My Levels'}),mk('h3',{text:'Made by you'}));
+  if(!mine.length)c.append(mk('div',{class:'empty',text:'No levels yet! Press "Make a Level" to build your first island.'}));
+  let hiRow=null;for(const e of mine){let L;try{L=sanitizeLevel(e.level);}catch(err){continue;}const r=levelRow(L,{id:e.id,hi:e.id===hi});if(e.id===hi)hiRow=r;c.append(r);}
+  c.append(mk('h3',{text:'Example levels'}));for(const e of EXAMPLES)c.append(levelRow(exLevel(e),{id:e.id,builtin:true,blurb:e.blurb}));
+  c.append(mk('div',{class:'mfoot'},sb('c-grey','Back',()=>showMenu('main')),mk('span',null,sb('c-purple','Import a Level',()=>showMenu('import')),' ',sb('c-orange','Make a Level',()=>showMenu('make')))));
+  if(hiRow)setTimeout(()=>hiRow.scrollIntoView({block:'nearest'}),0);}
+function menuImport(c){const ta=mk('textarea',{rows:'7',id:'imcode',spellcheck:'false',placeholder:'Paste the level code here (it starts with BSL1)...'}),err=mk('div',{class:'err',id:'imerr'});
+  const go=async text=>{err.textContent='';try{const L=await decodeLevel(text);L.name=uniqueName(L.name);const id=storeLevel(L,null);if(id){toast(`Imported "${L.name}"! It's in My Levels.`,'good');showMenu('levels',id);}}catch(e){err.textContent=e.message||String(e);}};
+  const fi=$('filein');fi.value='';fi.onchange=async()=>{const f=fi.files&&fi.files[0];if(!f)return;if(f.size>8e6){err.textContent='That file is too big to be a level.';return;}const t=await f.text();ta.value=t.length>4000?t.slice(0,4000)+' ...':t;go(t);};
+  c.append(mk('h2',{text:'Import a Level'}),mk('p',{text:"Got a level from a friend? Paste its code below, or load a level file (.json) you downloaded."}),ta,err,
+    mk('div',{class:'mfoot'},sb('c-grey','Back',()=>showMenu('main')),mk('span',null,sb('c-blue','Load a file...',()=>fi.click()),' ',mk('button',{class:'sbtn c-green',id:'imgo',text:'Import',onclick:()=>go(ta.value)}))));
+  setTimeout(()=>ta.focus(),0);}
+
+// ------------------------------------------------------------------ playing a level
+function startPlay(L,opts){opts=opts||{};closeModal();
+  if(mode==='edit')edCam={yaw:cam.yaw,pitch:cam.pitch,dist:cam.dist,target:cam.target.slice()};
+  PLAY={testing:!!opts.testing,id:opts.id||null};mode='play';down=null;hover=null;
+  applyLevel(L);resetGame();bannerT=null;hudS='';sel=0;
+  Object.assign(cam,{yaw:-0.62,pitch:.62,dist:L?SIZES[L.size].dist:36,target:[CX,1,CZ]});
+  $('editbtn').style.display=PLAY.testing?'':'none';$('menubtn').style.display=PLAY.testing?'none':'';$('autolink').style.display=L?'none':'';
+  setUI();
+  if(L){toast(`${L.name}: keep the villagers safe for ${plural(LV.win,'night')}!`,'good');
+    if(PLAY.testing){const bad=VSP.filter(([x,z])=>!passV[gi(x,z)]).length;if(bad)toast(`${bad} villager spawn${bad>1?'s are':' is'} blocked or not on flat ground.`,'warn');}}
+  setTimeout(()=>{if(mode==='play'&&simT<20)toast('Hold click on a tree to gather logs!');},L?1800:400);}
+function showWin(){const alive=villagers.filter(v=>v.alive).length,n=VSP.length,st=alive>=n?3:alive*2>=n?2:1;
+  const w=$('winstars');w.innerHTML='';for(let i=0;i<3;i++)w.appendChild(mk('span',{class:i<st?'':'off',text:'\u2605'}));
+  $('wintxt').textContent=`Level complete! You kept ${alive} of ${plural(n,'villager')} safe for ${plural(LV.win,'night')}.`+(st===3?' Perfect!':'');
+  $('winedit').style.display=PLAY.testing?'':'none';$('winmenu').style.display=PLAY.testing?'none':'';$('win').style.display='flex';}
+
+// ------------------------------------------------------------------ level editor
+const EPAL=BT.slice();
+const TOOLS=[{id:'build',name:'Build',ic:()=>icon('planks')},{id:'erase',name:'Erase',ic:eraserIcon},{id:'tree',name:'Tree',ic:treeIcon},{id:'rock',name:'Rock',ic:()=>icon('rock')},
