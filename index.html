@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Browser Games Arcade</title>
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; min-height: 100vh; font-family: "Trebuchet MS", system-ui, Arial, sans-serif; color: #1d1b3a;
+         background: linear-gradient(160deg, #ffe66d 0%, #ff9f68 35%, #ff6fb5 70%, #8f7bff 100%); background-attachment: fixed; }
+  header { text-align: center; padding: 36px 16px 10px; }
+  h1 { margin: 0; font-size: clamp(2.2rem, 6vw, 3.6rem); color: #fff; text-shadow: 0 4px 0 #5b2a86, 0 8px 18px rgba(0,0,0,.25); letter-spacing: 1px; }
+  .tag { margin: 10px 0 0; font-size: 1.2rem; color: #fff; text-shadow: 0 2px 4px rgba(0,0,0,.3); }
+  main { max-width: 1100px; margin: 0 auto; padding: 20px 16px 50px; display: grid; gap: 22px;
+         grid-template-columns: repeat(auto-fill, minmax(290px, 1fr)); }
+  .card { background: #fff; border-radius: 22px; overflow: hidden; box-shadow: 0 10px 0 rgba(91,42,134,.35), 0 18px 30px rgba(0,0,0,.18);
+          display: flex; flex-direction: column; transition: transform .15s; }
+  .card:hover { transform: translateY(-6px) rotate(-.5deg); }
+  .art { height: 150px; display: flex; align-items: center; justify-content: center; font-size: 76px; }
+  .body { padding: 16px 18px 20px; display: flex; flex-direction: column; flex: 1; }
+  h2 { margin: 0 0 6px; font-size: 1.35rem; }
+  p { margin: 0 0 16px; line-height: 1.45; color: #4a4868; flex: 1; }
+  .play { align-self: flex-start; text-decoration: none; font-weight: 800; font-size: 1.1rem; color: #fff; background: #2ecc71;
+          padding: 10px 22px; border-radius: 999px; box-shadow: 0 5px 0 #1e8e4e; transition: transform .1s, box-shadow .1s; }
+  .play:hover { transform: translateY(2px); box-shadow: 0 3px 0 #1e8e4e; }
+  .play:active { transform: translateY(5px); box-shadow: 0 0 0 #1e8e4e; }
+  .note { font-size: .85rem; color: #7a7896; margin: -8px 0 14px; }
+  footer { text-align: center; color: #fff; padding: 0 16px 30px; text-shadow: 0 1px 3px rgba(0,0,0,.35); }
+</style>
+</head>
+<body>
+<header>
+  <h1>🎮 Browser Games Arcade 🎮</h1>
+  <p class="tag">Pick a game and press Play! Everything runs right in your web browser.</p>
+</header>
+<main>
+  <div class="card">
+    <div class="art" style="background:linear-gradient(135deg,#1b2a52,#3b5bdb)">🧱🌙</div>
+    <div class="body">
+      <h2>BlockSurvival</h2>
+      <p>Keep the villagers safe through the night, then build your own levels with the level maker!</p>
+      <a class="play" href="blocksurvival.html">▶ Play</a>
+    </div>
+  </div>
+  <div class="card">
+    <div class="art" style="background:linear-gradient(135deg,#8bd450,#f7c948)">🏡🔨</div>
+    <div class="body">
+      <h2>BlockHouse</h2>
+      <p>Build the villagers a cozy block house, one brick at a time.</p>
+      <a class="play" href="blockhouse.html">▶ Play</a>
+    </div>
+  </div>
+  <div class="card">
+    <div class="art" style="background:linear-gradient(135deg,#2e7d32,#9fd0ff)">🏉🥅</div>
+    <div class="body">
+      <h2>Footy Goal Kicker</h2>
+      <p>Aim, power up and kick goals through the big posts. Can you beat 50 points in 10 kicks?</p>
+      <a class="play" href="footy.html">▶ Play</a>
+    </div>
+  </div>
+  <div class="card">
+    <div class="art" style="background:linear-gradient(135deg,#1e88e5,#ff7043)">🌊🔥</div>
+    <div class="body">
+      <h2>Tide &amp; Flame VR Arena</h2>
+      <p>Battle in a 3D arena of water and fire. Works on a computer, and in a VR headset too!</p>
+      <a class="play" href="arena_vr.html">▶ Play</a>
+    </div>
+  </div>
+  <div class="card">
+    <div class="art" style="background:linear-gradient(135deg,#2a1340,#ff4fa3)">🎤✨</div>
+    <div class="body">
+      <h2>Nova Lark: Live on Stage</h2>
+      <p>Watch Nova Lark sing her big song under the spotlights. Press Play sound to hear it!</p>
+      <a class="play" href="singer.html">▶ Play</a>
+    </div>
+  </div>
+  <div class="card">
+    <div class="art" style="background:linear-gradient(135deg,#1a2f3a,#4f8a2b)">👹🍕</div>
+    <div class="body">
+      <h2>Swamp Feast</h2>
+      <p>A hungry swamp ogre sits down to dinner... until some cheeky frogs turn up!</p>
+      <a class="play" href="swamp.html">▶ Play</a>
+    </div>
+  </div>
+  <div class="card">
+    <div class="art" style="background:linear-gradient(135deg,#0b1220,#ffb347)">🗼🌧️</div>
+    <div class="body">
+      <h2>The Lighthouse at Cape Ember</h2>
+      <p>A stormy choose-your-path adventure. Can you keep the light burning and save the boat?</p>
+      <a class="play" href="lighthouse.html">▶ Play</a>
+    </div>
+  </div>
+</main>
+<footer>Made with code and imagination 💖</footer>
+</body>
+</html>
