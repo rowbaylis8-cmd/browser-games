@@ -1,7 +1,8 @@
-// Service worker for Footy Goal Kicker.
-// Only handles requests for footy.html so it never hijacks the other games' pages.
-const CACHE = 'footy-v2';
-const PAGE = 'footy.html';
+// Service worker for the Browser Games Arcade home page.
+// Only handles the arcade page itself (pathname ending '/' or '/index.html');
+// every game page is left alone (games with their own app handle themselves).
+const CACHE = 'arcade-v1';
+const PAGE = 'index.html';
 
 self.addEventListener('install', event => {
   event.waitUntil(caches.open(CACHE).then(cache => cache.add(PAGE)).catch(() => {}));
@@ -11,7 +12,7 @@ self.addEventListener('install', event => {
 self.addEventListener('activate', event => {
   event.waitUntil(
     caches.keys()
-      .then(names => Promise.all(names.filter(n => n.startsWith('footy-') && n !== CACHE).map(n => caches.delete(n))))
+      .then(names => Promise.all(names.filter(n => n.startsWith('arcade-') && n !== CACHE).map(n => caches.delete(n))))
       .then(() => self.clients.claim())
   );
 });
@@ -20,7 +21,8 @@ self.addEventListener('fetch', event => {
   const req = event.request;
   if (req.method !== 'GET') return;
   const url = new URL(req.url);
-  if (url.origin !== self.location.origin || !url.pathname.endsWith('/footy.html')) return;
+  if (url.origin !== self.location.origin) return;
+  if (!(url.pathname.endsWith('/') || url.pathname.endsWith('/index.html'))) return;
   // Network first, fall back to the cached copy when offline.
   event.respondWith(
     fetch(req)

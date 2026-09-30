@@ -4,6 +4,10 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Browser Games Arcade</title>
+<meta name="theme-color" content="#8f7bff">
+<link rel="manifest" href="arcade.webmanifest">
+<link rel="icon" href="arcade-icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="arcade-icon.svg">
 <style>
   * { box-sizing: border-box; }
   body { margin: 0; min-height: 100vh; font-family: "Trebuchet MS", system-ui, Arial, sans-serif; color: #1d1b3a;
@@ -34,6 +38,14 @@
   <p class="tag">Pick a game and press Play! Everything runs right in your web browser.</p>
 </header>
 <main>
+  <div class="card">
+    <div class="art" style="background:linear-gradient(135deg,#1b5e20,#43c56a)">⚽🥅</div>
+    <div class="body">
+      <h2>Soccer Showdown</h2>
+      <p>2 players on one keyboard or vs the computer, first to 100! Jump, head the ball and dive for saves.</p>
+      <a class="play" href="soccer.html">▶ Play</a>
+    </div>
+  </div>
   <div class="card">
     <div class="art" style="background:linear-gradient(135deg,#1b2a52,#3b5bdb)">🧱🌙</div>
     <div class="body">
@@ -92,5 +104,10 @@
   </div>
 </main>
 <footer>Made with code and imagination 💖</footer>
+<script>
+  if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
+    addEventListener('load', () => navigator.serviceWorker.register('arcade-sw.js', { scope: './' }).catch(() => {}));
+  }
+</script>
 </body>
 </html>
