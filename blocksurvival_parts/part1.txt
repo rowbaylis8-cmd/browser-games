@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>BlockSurvival: keep the villagers safe through the night</title>
+<style>
+html,body{margin:0;height:100%;overflow:hidden;background:#9cd0f5;font-family:"Trebuchet MS","DejaVu Sans","Noto Sans",Verdana,sans-serif;user-select:none;-webkit-user-select:none}
+#gl{display:block;width:100vw;height:100vh;cursor:crosshair;touch-action:none}
+#gl.zomb{cursor:pointer}
+.shadow{text-shadow:0 2px 0 rgba(0,0,0,.5)}
+#vig{position:fixed;inset:0;pointer-events:none;background:radial-gradient(ellipse at center,rgba(0,0,0,0) 55%,rgba(5,8,30,.75) 100%);opacity:0}
+#left{position:fixed;left:14px;top:12px;pointer-events:none;display:flex;flex-direction:column;gap:8px}
+#hud{color:#fff;background:rgba(0,0,0,.28);padding:8px 12px 10px;border-radius:8px;width:340px}
+#title{font-size:28px;font-weight:900;letter-spacing:1px}
+#title span{color:#ffd54a}
+#tag{display:inline-block;margin-left:10px;font-size:12px;vertical-align:middle;background:#e5484d;padding:3px 7px;border-radius:4px;letter-spacing:1px;text-shadow:none}
+#clockrow{display:flex;align-items:center;gap:10px;margin-top:4px}
+#dial{width:46px;height:46px;flex:none}
+#daytxt{font-size:20px;font-weight:900}
+#timetxt{font-size:13px;font-weight:bold;opacity:.95}
+#prog{margin-top:6px;width:100%;height:12px;background:rgba(0,0,0,.35);border:2px solid rgba(255,255,255,.9);border-radius:4px;overflow:hidden;box-sizing:border-box}
+#bar{height:100%;width:0;background:linear-gradient(#ffe27a,#f0a521)}
+#bar.night{background:linear-gradient(#9aa6ff,#5a4fcf)}
+#obj{font-size:15px;font-weight:bold;margin-top:7px;color:#ffe9a8;line-height:1.3}
+#vill,#shel{font-size:14px;font-weight:bold;margin-top:5px}
+.head{display:inline-block;width:13px;height:13px;border:2px solid rgba(0,0,0,.45);border-radius:2px;margin-right:3px;vertical-align:-3px}
+.head.gone{opacity:.25}
+#shel.ok{color:#9dff8a}#shel.no{color:#ffb4a0}
+#craft{pointer-events:auto;color:#fff;background:rgba(0,0,0,.4);padding:8px 10px;border-radius:8px;width:340px;box-sizing:border-box}
+#craft .hd{font-size:14px;font-weight:bold;color:#ffd54a;margin-bottom:5px}
+#craft .hd i{font-style:normal;font-weight:normal;color:#ddd;font-size:11px}
+#craft .grid{display:grid;grid-template-columns:1fr 1fr;gap:5px}
+.rc{display:flex;align-items:center;gap:5px;font:inherit;font-size:12px;font-weight:bold;background:#4caf2a;color:#fff;border:0;border-radius:5px;padding:3px 6px;cursor:pointer;text-align:left;line-height:1.15}
+.rc canvas{width:26px;height:26px;image-rendering:pixelated;flex:none}
+.rc small{display:block;font-weight:normal;opacity:.9;font-size:10.5px}
+.rc:disabled{background:#56606e;opacity:.7;cursor:default}
+#hotbar{position:fixed;left:50%;bottom:14px;transform:translateX(-50%);display:flex;gap:4px;padding:5px;background:rgba(0,0,0,.45);border:2px solid rgba(255,255,255,.35);border-radius:6px}
+.slot{width:54px;height:54px;position:relative;border:3px solid rgba(255,255,255,.12);border-radius:4px;background:rgba(255,255,255,.07);cursor:pointer;box-sizing:border-box}
+.slot.sel{border-color:#fff;background:rgba(255,255,255,.28);box-shadow:0 0 12px rgba(255,255,255,.75)}
+.slot canvas{position:absolute;left:0;top:0}
+.slot.zero canvas{opacity:.3}
+.slot b{position:absolute;left:3px;top:0;font-size:11px;color:#fff;text-shadow:0 1px 0 #000}
+.slot i{position:absolute;right:3px;bottom:0;font-style:normal;font-size:15px;font-weight:900;color:#fff;text-shadow:0 1px 0 #000,0 0 3px #000}
+.slot.flash{animation:fl .45s}
+@keyframes fl{0%{background:rgba(255,230,120,.9);transform:scale(1.15)}100%{background:rgba(255,255,255,.07);transform:scale(1)}}
+#selname{position:fixed;left:50%;bottom:86px;transform:translateX(-50%);color:#fff;font-weight:bold;font-size:16px;pointer-events:none;white-space:nowrap}
+#help{position:fixed;right:14px;top:14px;color:#fff;font-size:12.5px;background:rgba(0,0,0,.42);padding:10px 13px;border-radius:8px;line-height:1.5;width:285px;box-sizing:border-box}
+#help b{color:#ffd54a}
+#help ul{margin:3px 0 4px;padding-left:17px}
+#help li{margin:1px 0}
+#help .ctl{font-size:11.5px;opacity:.95;border-top:1px solid rgba(255,255,255,.25);margin-top:5px;padding-top:5px}
+#help .row{margin-top:8px;display:flex;gap:6px;flex-wrap:wrap}
+#help button,#help a,#over button{font:inherit;font-size:12px;font-weight:bold;background:#4caf2a;color:#fff;border:0;border-radius:5px;padding:5px 9px;cursor:pointer;text-decoration:none}
+#help button.alt{background:#6b7a90}
+#help.min .body{display:none}
+#toasts{z-index:30;position:fixed;left:50%;top:13%;transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;gap:6px;pointer-events:none}
+.toast{background:rgba(0,0,0,.55);color:#fff;font-weight:bold;font-size:17px;padding:7px 16px;border-radius:20px;transition:opacity .5s;white-space:nowrap}
+.toast.bad{background:rgba(150,30,40,.75)}.toast.good{background:rgba(30,120,40,.75)}.toast.warn{background:rgba(150,90,10,.8)}
+#banner{position:fixed;left:50%;top:26%;transform:translate(-50%,-50%);text-align:center;pointer-events:none;opacity:0;white-space:nowrap}
+#banner .big{font-size:62px;font-weight:900;color:#ffd54a;-webkit-text-stroke:2px #7a3410;text-shadow:0 5px 0 #b3541e,0 10px 22px rgba(0,0,0,.35)}
+#banner .small{font-size:24px;font-weight:bold;color:#fff;text-shadow:0 2px 0 rgba(0,0,0,.6);margin-top:4px}
+#over{position:fixed;inset:0;display:none;flex-direction:column;align-items:center;justify-content:center;background:rgba(10,12,40,.55);color:#fff;text-align:center}
+#over .big{font-size:64px;font-weight:900;color:#ff8a7a;-webkit-text-stroke:2px #5a1010;text-shadow:0 5px 0 #8a2a1e}
+#over .small{font-size:22px;font-weight:bold;margin:8px 0 18px;line-height:1.4}
+#over button{font-size:22px;padding:10px 26px}
+#err{position:fixed;inset:0;display:none;align-items:center;justify-content:center;background:#123;color:#fff;font-size:18px;padding:30px;text-align:center}
+
+/* ---------- level system: menu, editor, overlays */
+body.m-menu #left,body.m-menu #help,body.m-menu #hotbar,body.m-menu #selname,body.m-menu #edui{display:none!important}
+body.m-edit #left,body.m-edit #help,body.m-edit #hotbar,body.m-edit #selname,body.m-edit #over,body.m-edit #win,body.m-edit #menu{display:none!important}
+body.m-play #edui,body.m-play #menu{display:none!important}
+#lvl{font-size:14px;font-weight:bold;margin-top:3px;color:#bff0ff;display:none}
+#help button.go{background:#2f8fd8}
+#over .btns,#win .btns{display:flex;gap:10px;flex-wrap:wrap;justify-content:center}
+#over button.alt,#win button.alt{background:#6b7a90}
+#win{position:fixed;left:0;right:0;bottom:0;top:38%;display:none;flex-direction:column;align-items:center;justify-content:center;color:#fff;text-align:center;background:linear-gradient(rgba(20,30,60,0),rgba(20,30,60,.55) 30%)}
+#win .stars{font-size:54px;letter-spacing:8px;color:#ffd54a;text-shadow:0 3px 0 #b3541e}
+#win .stars .off{color:rgba(255,255,255,.28);text-shadow:none}
+#win .small{font-size:21px;font-weight:bold;margin:4px 0 14px;line-height:1.35}
+#win button{font:inherit;font-size:19px;font-weight:bold;background:#4caf2a;color:#fff;border:0;border-radius:8px;padding:9px 20px;cursor:pointer}
+#menu{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:radial-gradient(ellipse at center,rgba(20,40,70,.25),rgba(10,20,45,.6))}
+.card{background:rgba(255,251,240,.97);color:#3a2a1a;border-radius:18px;padding:20px 24px;box-shadow:0 10px 0 rgba(90,60,30,.35),0 18px 40px rgba(0,0,0,.35);border:4px solid #7a5230;width:min(640px,92vw);max-height:88vh;overflow:auto;box-sizing:border-box}
+.card h1{margin:0;text-align:center;font-size:56px;font-weight:900;color:#fff;-webkit-text-stroke:2px #3b6b1e;text-shadow:0 5px 0 #3b6b1e;letter-spacing:1px}
+.card h1 span{color:#ffd54a;-webkit-text-stroke:2px #7a3410;text-shadow:0 5px 0 #b3541e}
+.card h2{margin:0 0 10px;font-size:28px;color:#5a3a1c}
+.card h3{margin:14px 0 6px;font-size:16px;color:#7a5230;text-transform:uppercase;letter-spacing:1px}
+.card p{margin:6px 0 10px;font-size:15px;line-height:1.4}
+.card .tagline{text-align:center;font-weight:bold;font-size:17px;color:#6a4a2a;margin:8px 0 16px}
+.mbtn{display:flex;align-items:center;gap:12px;width:100%;font:inherit;font-size:24px;font-weight:900;color:#fff;border:0;border-radius:12px;padding:12px 18px;margin:9px 0;cursor:pointer;text-align:left;box-shadow:0 5px 0 rgba(0,0,0,.25);text-shadow:0 2px 0 rgba(0,0,0,.3)}
+.mbtn:active{transform:translateY(3px);box-shadow:0 2px 0 rgba(0,0,0,.25)}
+.mbtn canvas{width:40px;height:40px;image-rendering:pixelated;flex:none}
+.mbtn small{display:block;font-size:13px;font-weight:bold;opacity:.92;text-shadow:none}
+.c-green{background:#4caf2a}.c-blue{background:#2f8fd8}.c-orange{background:#e08a1e}.c-purple{background:#8a5bc4}.c-grey{background:#7a8698}.c-red{background:#d9463e}
+.sbtn{font:inherit;font-size:14px;font-weight:bold;color:#fff;border:0;border-radius:7px;padding:6px 11px;cursor:pointer;box-shadow:0 3px 0 rgba(0,0,0,.22)}
+.sbtn:disabled{opacity:.45;cursor:default}
+.mfoot{display:flex;gap:8px;justify-content:space-between;margin-top:14px;flex-wrap:wrap}
+.mfoot a{color:#2f6fb8;font-weight:bold;font-size:14px;align-self:center}
+.lrow{display:flex;gap:12px;align-items:center;background:#fff;border:2px solid #e2d3b8;border-radius:12px;padding:8px;margin:7px 0}
+.lrow.hi{border-color:#4caf2a;box-shadow:0 0 0 3px rgba(76,175,42,.3)}
+.lrow canvas{width:84px;height:84px;border-radius:8px;flex:none;image-rendering:pixelated;background:#9cd0f5}
+.lrow .li{flex:1;min-width:0}
+.lrow .ln{font-size:19px;font-weight:900;color:#3a2a1a;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.lrow .lm{font-size:12.5px;color:#7a6650;margin:2px 0 6px}
+.lrow .lb{display:flex;gap:5px;flex-wrap:wrap}
+.lrow input{font:inherit;font-size:16px;font-weight:bold;padding:3px 6px;border:2px solid #7a5230;border-radius:6px;width:60%}
+.empty{padding:14px;text-align:center;color:#7a6650;font-weight:bold;background:#fff;border:2px dashed #d8c6a6;border-radius:12px}
+.card textarea{width:100%;box-sizing:border-box;font:12px/1.35 "DejaVu Sans Mono",monospace;border:2px solid #b89a70;border-radius:8px;padding:8px;resize:vertical;background:#fffdf7;color:#333}
+.err{color:#c62828;font-weight:bold;min-height:20px;margin-top:6px}
+.choices{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.choices .mbtn{margin:0;font-size:19px}
+#modal{position:fixed;inset:0;display:none;align-items:center;justify-content:center;background:rgba(10,15,35,.55);z-index:20}
+#edui{position:fixed;inset:0;pointer-events:none;color:#fff}
+#edui .pnl{pointer-events:auto;position:absolute;background:rgba(24,30,48,.82);border:2px solid rgba(255,255,255,.18);border-radius:12px;padding:10px 12px;box-sizing:border-box}
+#edleft{left:12px;top:12px;width:292px}
+#edright{right:12px;top:12px;width:300px}
+#edright.min .body{display:none}
+.edtitle{font-size:22px;font-weight:900;color:#ffd54a;text-shadow:0 2px 0 rgba(0,0,0,.5);display:flex;justify-content:space-between;align-items:center}
+.sec{font-size:11.5px;font-weight:bold;color:#aab8d0;text-transform:uppercase;letter-spacing:1px;margin:9px 0 4px}
+#edname{width:100%;box-sizing:border-box;font:inherit;font-size:16px;font-weight:bold;padding:5px 8px;border-radius:7px;border:2px solid #5d6b86;background:#101626;color:#fff;margin-top:6px}
+.tools{display:grid;grid-template-columns:1fr 1fr;gap:5px}
+.tbtn{display:flex;align-items:center;gap:6px;font:inherit;font-size:13px;font-weight:bold;color:#fff;background:#3a4560;border:2px solid transparent;border-radius:7px;padding:3px 6px;cursor:pointer;text-align:left}
+.tbtn canvas{width:28px;height:28px;image-rendering:pixelated;flex:none}
+.tbtn.on{background:#2f8fd8;border-color:#fff;box-shadow:0 0 8px rgba(120,200,255,.8)}
+.seg{display:flex;gap:4px;flex-wrap:wrap}
+.seg button{flex:1;font:inherit;font-size:13px;font-weight:bold;color:#fff;background:#3a4560;border:2px solid transparent;border-radius:7px;padding:5px 4px;cursor:pointer}
+.seg button.on{background:#2f8fd8;border-color:#fff}
+.acts{display:grid;grid-template-columns:1fr 1fr 1fr;gap:5px}
+.acts button,.bigacts button{font:inherit;font-size:13px;font-weight:bold;color:#fff;background:#56627c;border:0;border-radius:7px;padding:6px 4px;cursor:pointer}
+.acts button:disabled{opacity:.4;cursor:default}
+.bigacts{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:9px}
+.bigacts button{font-size:16px;padding:8px 4px}
+#edstat{font-size:12px;color:#d6def0;margin-top:8px;line-height:1.45}
+#edstat b{color:#9dff8a}
+.srow{display:flex;align-items:center;gap:8px;font-size:13px;font-weight:bold;margin:3px 0}
+.srow input[type=range]{flex:1;accent-color:#ffd54a}
+.srow output{width:26px;text-align:right;color:#ffd54a;font-size:15px}
+.invg{display:grid;grid-template-columns:repeat(5,1fr);gap:4px}
+.invg label{display:flex;flex-direction:column;align-items:center;background:#2c3550;border-radius:6px;padding:3px 2px;font-size:10px;font-weight:bold;text-align:center}
+.invg canvas{width:26px;height:26px;image-rendering:pixelated}
+.invg input{width:38px;font:inherit;font-size:13px;font-weight:bold;text-align:center;border:0;border-radius:4px;background:#101626;color:#fff;margin-top:2px}
+#edbar{position:absolute;left:50%;bottom:12px;transform:translateX(-50%);display:flex;gap:3px;padding:5px;background:rgba(0,0,0,.5);border:2px solid rgba(255,255,255,.35);border-radius:8px;pointer-events:auto}
+#edbar .slot{width:50px;height:50px}
+#edbar .slot canvas{width:44px;height:44px}
+#edtip{position:absolute;left:50%;top:12px;transform:translateX(-50%);max-width:620px;text-align:center;font-size:14px;font-weight:bold;background:rgba(0,0,0,.45);padding:6px 14px;border-radius:16px;text-shadow:0 1px 0 #000}
+#edtip small{display:block;font-size:11.5px;font-weight:normal;opacity:.9;margin-top:2px}
+#edblk{position:absolute;left:50%;bottom:76px;transform:translateX(-50%);font-weight:bold;font-size:15px;text-shadow:0 2px 0 rgba(0,0,0,.6);white-space:nowrap}
+</style>
+</head>
+<body>
+<canvas id="gl"></canvas>
+<div id="vig"></div>
+<div id="left">
+ <div id="hud" class="shadow">
+  <div id="title">Block<span>Survival</span><span id="tag" style="display:none">DEMO</span></div>
+  <div id="lvl"></div>
+  <div id="clockrow"><canvas id="dial" width="92" height="92"></canvas><div><div id="daytxt">Day 1</div><div id="timetxt"></div></div></div>
+  <div id="prog"><div id="bar"></div></div>
+  <div id="obj"></div>
+  <div id="vill"></div>
+  <div id="shel"></div>
+ </div>
+ <div id="craft" class="shadow"><div class="hd">Crafting <i>(Shift-click: make 5)</i></div><div class="grid" id="rgrid"></div></div>
+</div>
+<div id="help">
+  <b>How to survive</b> <button id="tipbtn" class="alt" style="float:right;padding:1px 7px">Tips (H)</button>
+  <div class="body">
+  <ul>
+   <li><b>By day, gather:</b> hold click on trees for logs, rocks for stone, sand for sand.</li>
+   <li><b>Craft</b> planks, glass, doors, torches and roof tiles.</li>
+   <li><b>Build a shelter</b> before dark: walls all around, a <b>roof</b> on top and a <b>door</b> so villagers can get in.</li>
+   <li>Place <b>torches</b>, they glow at night.</li>
+   <li><b>At night</b> zombies come! Villagers run to your shelter. <b>Click a zombie</b> to bonk it (3 bonks).</li>
+   <li>Zombies poof away at sunrise.</li>
+  </ul>
+  <div class="ctl"><b>Hold click</b> gather (Hand or empty slot) &nbsp; <b>Click</b> place block<br><b>Right-click / Shift-hold</b> gather or take back<br><b>Drag</b> orbit &nbsp; <b>Wheel</b> zoom &nbsp; <b>WASD</b> pan &nbsp; <b>1-9, 0, -</b> pick</div>
+  </div>
+  <div class="row"><a id="autolink" href="?autoplay=1">Watch demo</a><button id="skip" class="alt">Skip to sunset</button><button id="reset" class="alt">Restart</button><button id="editbtn" class="go" style="display:none">Back to editor</button><button id="menubtn" class="go">Menu</button></div>
+</div>
+<div id="selname" class="shadow"></div>
+<div id="hotbar"></div>
+<div id="toasts"></div>
+<div id="banner"><div class="big" id="bbig"></div><div class="small" id="bsmall"></div></div>
+<div id="over"><div class="big">Oh no!</div><div class="small" id="overtxt"></div><div class="btns"><button id="again">Play again</button><button id="overedit" class="alt" style="display:none">Back to editor</button><button id="overmenu" class="alt">Menu</button></div></div>
+<div id="win"><div class="stars" id="winstars"></div><div class="small" id="wintxt"></div><div class="btns"><button id="winagain">Play again</button><button id="winkeep" class="alt">Keep playing</button><button id="winedit" class="alt" style="display:none">Back to editor</button><button id="winmenu" class="alt">My Levels</button></div></div>
+<div id="edui">
+ <div id="edleft" class="pnl">
+  <div class="edtitle">Level Editor <button class="sbtn c-grey" id="edhelp" style="font-size:12px;padding:3px 8px">Help</button></div>
+  <input id="edname" maxlength="40" placeholder="Name your level">
+  <div class="sec">Tools</div><div class="tools" id="edtools"></div>
+  <div class="sec">Brush size</div><div class="seg" id="edbrush"><button data-b="1">1 block</button><button data-b="3">3 x 3</button></div>
+  <div class="sec">Actions</div>
+  <div class="acts"><button id="edundo">Undo</button><button id="edredo">Redo</button><button id="ednight">Night view</button><button id="edfill">Fill ground</button><button id="edclear">Clear all</button><button id="edsetbtn">Settings</button></div>
+  <div class="bigacts"><button id="edtest" style="background:#4caf2a">Test play</button><button id="edsave" style="background:#2f8fd8">Save</button><button id="edshare" style="background:#8a5bc4">Share</button><button id="edmenu" style="background:#7a8698">Menu</button></div>
+  <div id="edstat"></div>
+ </div>
+ <div id="edright" class="pnl"><div class="edtitle">Level Settings <button class="sbtn c-grey" id="edsetmin" style="font-size:12px;padding:3px 8px">Hide</button></div><div class="body" id="edset"></div></div>
+ <div id="edtip"></div>
+ <div id="edblk"></div>
+ <div id="edbar"></div>
+</div>
+<div id="menu"><div class="card" id="mcard"></div></div>
+<div id="modal"><div class="card" id="mdcard"></div></div>
+<input type="file" id="filein" accept=".json,.txt,application/json,text/plain" style="display:none">
+<div id="err"></div>
+<script>
+(()=>{
+'use strict';
+// ------------------------------------------------------------------ params
+const P = new URLSearchParams(location.search);
+const AUTO = P.get('autoplay') === '1';
+let CYCLE=180, DAYLEN=120, DUSKWARN=100;const START=5;
+let jumpT = P.has('t') ? Math.max(0, parseFloat(P.get('t')) || 0) : (P.get('night') === '1' ? 124 : START);
+const SPEED = P.has('speed') ? Math.min(20, Math.max(.1, parseFloat(P.get('speed')) || 1)) : 1;
+const FREEZE = P.get('freeze') === '1';
+// any of these URL options jumps straight into the classic survival game (skipping the title menu)
+const DIRECT = AUTO || ['night','t','speed','freeze','hud','yaw','play'].some(k=>P.has(k));
+const START_EDITOR = P.get('editor') === '1';
+if (P.get('hud') === '0') for (const id of ['left','hotbar','selname','help']) document.getElementById(id).style.display = 'none';
+
+// ------------------------------------------------------------------ helpers
+function mulberry(a){return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;};}
+function hash(i,j){let h=Math.imul(i|0,374761393)+Math.imul((j|0)+1013,668265263);h=Math.imul(h^(h>>>13),1274126177);h^=h>>>16;return (h>>>0)/4294967296;}
+const clamp=(v,a,b)=>v<a?a:v>b?b:v;
+const smooth=(a,b,x)=>{const t=clamp((x-a)/(b-a),0,1);return t*t*(3-2*t);};
+const easeOutBack=x=>{x=clamp(x,0,1);const c1=1.9,c3=c1+1;return 1+c3*Math.pow(x-1,3)+c1*Math.pow(x-1,2);};
+const key=(x,y,z)=>x+','+y+','+z;
+const mix3=(a,b,k)=>[a[0]+(b[0]-a[0])*k,a[1]+(b[1]-a[1])*k,a[2]+(b[2]-a[2])*k];
+const fmt=s=>{s=Math.max(0,Math.ceil(s));return Math.floor(s/60)+':'+String(s%60).padStart(2,'0');};
+let rnd=mulberry(20260929);
+
+// ------------------------------------------------------------------ texture atlas (procedural pixel art, same style as BlockHouse)
+const TS=16, AT=128;
+const atlas=document.createElement('canvas'); atlas.width=atlas.height=AT;
+const ac=atlas.getContext('2d');
+const T={}; let tileN=0;
+const rgb=(c,a)=>a===undefined?`rgb(${c[0]|0},${c[1]|0},${c[2]|0})`:`rgba(${c[0]|0},${c[1]|0},${c[2]|0},${a})`;
+function tile(name,fn){
+  const idx=tileN++, ox=(idx%8)*TS, oy=Math.floor(idx/8)*TS, r=mulberry(idx*977+13);
+  const jit=(c,amt)=>{const k=(r()-0.5)*amt;return [c[0]+k,c[1]+k,c[2]+k];};
+  const px=(x,y,c,a)=>{ac.fillStyle=rgb(c,a);ac.fillRect(ox+x,oy+y,1,1);};
+  for(let y=0;y<TS;y++)for(let x=0;x<TS;x++)fn(x,y,px,jit,r);
+  T[name]=idx;
+}
+const GR=[96,172,58], DI=[134,96,66], SK=[196,150,118];
+tile('grass_top',(x,y,px,j,r)=>px(x,y,r()<.15?j([70,140,44],20):j(GR,34)));
+tile('grass_side',(x,y,px,j,r)=>{const g=y<3||(y===3&&r()<.65)||(y===4&&r()<.25);px(x,y,g?j(GR,30):j(DI,28));});
+tile('dirt',(x,y,px,j,r)=>px(x,y,r()<.1?j([100,70,48],16):j(DI,28)));
+tile('planks',(x,y,px,j,r)=>{const b=Math.floor(y/4),seam=(b*7+3)%16;let c=[186,146,92];if(y%4===3||x===seam)c=[122,88,52];else if(r()<.12)c=[164,126,78];px(x,y,j(c,16));});
+tile('log_side',(x,y,px,j,r)=>{let c=[106,80,50];if(x%4===0||(x%4===2&&r()<.35))c=[72,53,33];px(x,y,j(c,18));});
+tile('log_top',(x,y,px,j)=>{const d=Math.max(Math.abs(x-7.5),Math.abs(y-7.5));let c=d>6.5?[92,68,42]:(Math.floor(d)%2?[178,140,88]:[152,114,68]);px(x,y,j(c,10));});
+tile('stone',(x,y,px,j,r)=>{const row=Math.floor(y/4),off=(row%2)*4;let c=[132,132,134];if(y%4===3||(x+off)%8===7)c=[82,82,86];else if(y%4===0)c=[156,156,158];px(x,y,j(c,r()<.2?30:14));});
+tile('glass',(x,y,px)=>{const edge=x===0||y===0||x===15||y===15;if(edge)px(x,y,[226,240,246]);else if((x+y===6||x+y===7)&&x>1&&y>1)px(x,y,[255,255,255],.75);else if(x+y===12&&x>2&&y>2)px(x,y,[255,255,255],.5);else px(x,y,[184,222,244],.26);});
+tile('door_bottom',(x,y,px,j)=>{let c=[112,74,42];if(x===0||x===15||y===15)c=[74,47,26];else if((x===2||x===13)&&y>1&&y<14||(y===2||y===13)&&x>1&&x<14)c=[86,56,31];if((x===12)&&(y===3||y===4))c=[235,196,70];px(x,y,j(c,10));});
+tile('door_top',(x,y,px,j)=>{let c=[112,74,42];if(x===0||x===15||y===0)c=[74,47,26];else if(x>=3&&x<=12&&y>=3&&y<=10){c=(x===7||x===8||y===6||y===7)?[86,56,31]:[176,214,236];}else if(y===13)c=[86,56,31];px(x,y,j(c,8));});
+tile('roof',(x,y,px,j,r)=>{const row=Math.floor(y/4),off=(row%2)*2;let c=[172,72,46];if(y%4===3)c=[108,40,26];else if((x+off)%4===0)c=[140,55,34];else if(y%4===0)c=[196,96,62];px(x,y,j(c,16));});
+tile('leaves',(x,y,px,j,r)=>{if(r()<.13)return;px(x,y,r()<.25?j([40,102,32],20):j([64,142,46],40));});
+tile('white',(x,y,px)=>px(x,y,[255,255,255]));
+tile('vface',(x,y,px,j)=>{let c=SK;if(y===5&&x>=3&&x<=12)c=[70,46,34];else if(y===6||y===7){if(x===3||x===12)c=[250,250,250];else if(x===4||x===11)c=[36,128,64];}else if(y===12&&x>=6&&x<=9)c=[150,100,78];px(x,y,j(c,8));});
+tile('skin',(x,y,px,j)=>px(x,y,j(SK,12)));
+tile('cloth',(x,y,px,j,r)=>{let c=[236,236,236];if(y%5===4)c=[205,205,205];px(x,y,j(c,r()<.2?30:12));});
+tile('path',(x,y,px,j,r)=>px(x,y,r()<.18?j([118,98,70],20):j([160,136,92],26)));
+// ---- new survival tiles
+tile('rock',(x,y,px,j,r)=>{const row=Math.floor(y/5),sx=x+(row%2)*3,cell=Math.floor(sx/5);const edge=sx%5===0||y%5===0;const h=hash(cell*7+row,row*3+1);let c=edge?[84,86,88]:[118+h*34,118+h*34,121+h*34];if(!edge&&r()<.14)c=[150,150,152];px(x,y,j(c,16));});
+tile('sand',(x,y,px,j,r)=>px(x,y,r()<.13?j([204,184,126],14):j([234,216,160],16)));
+const ZG=[112,164,84];
+tile('zskin',(x,y,px,j,r)=>px(x,y,j(r()<.16?[92,142,70]:ZG,14)));
+tile('zface',(x,y,px,j,r)=>{let c=ZG;
+  if(y>=5&&y<=7&&((x>=3&&x<=5)||(x>=10&&x<=12)))c=[34,46,30];
+  else if(y===3&&((x>=2&&x<=5)||(x>=10&&x<=13)))c=[76,116,56];
+  else if((y===11&&x>=5&&x<=10&&x%2===1)||(y===12&&x>=5&&x<=10&&x%2===0))c=[54,70,40];
+  else if(r()<.12)c=[92,142,70];px(x,y,j(c,10));});
+tile('zcloth',(x,y,px,j,r)=>{let c=[118,96,142];if(y%5===4)c=[94,74,118];else if(r()<.1)c=[142,122,166];if(y>=13&&(x%3===0))c=[80,62,100];px(x,y,j(c,12));});
+function crackTile(name,stage){tile(name,()=>{});const idx=T[name],ox=(idx%8)*TS,oy=Math.floor(idx/8)*TS,r=mulberry(4242);
+  ac.fillStyle='rgba(20,14,10,0.9)';
+  for(let a=0;a<3+stage*2;a++){let x=7+Math.floor(r()*2),y=7+Math.floor(r()*2);const len=3+stage*2+Math.floor(r()*3);const dx=r()<.5?-1:1,dy=r()<.5?-1:1;
+    for(let s=0;s<len;s++){ac.fillRect(ox+clamp(x,0,15),oy+clamp(y,0,15),1,1);if(r()<.55)x+=dx;else y+=dy;if(r()<.2)x-=dx;}}}
+crackTile('crack1',1);crackTile('crack2',2);crackTile('crack3',3);
+tile('moon',(x,y,px)=>{const d=Math.hypot(x-7.5,y-7.5);if(d>7.2)return;let c=[236,238,250];if(Math.hypot(x-5,y-6)<1.8||Math.hypot(x-10,y-10)<1.4||Math.hypot(x-10,y-4.5)<1)c=[196,200,222];px(x,y,c);});
+tile('sun',(x,y,px)=>{const e=Math.max(Math.abs(x-7.5),Math.abs(y-7.5));px(x,y,e>6.5?[255,214,90]:e>4.5?[255,236,130]:[255,250,210]);});
+tile('glow',(x,y,px)=>{const d=Math.hypot(x-7.5,y-7.5)/7.8;const a=Math.max(0,1-d);if(a<=0)return;px(x,y,[255,255,255],a*a);});
+tile('water',(x,y,px,j,r)=>{const w=Math.sin((x+y*.6)*.9)+Math.sin((x*.5-y)*.7);let c=w>1.25?[150,205,245]:w<-1.1?[40,110,200]:[62,140,220];px(x,y,j(c,10),w>1.25?.78:.62);});
+
+// ------------------------------------------------------------------ block types
+const all6=t=>[t,t,t,t,t,t];
+const B={
+  grass:{name:'Grass Block',tiles:[T.grass_side,T.grass_side,T.grass_top,T.dirt,T.grass_side,T.grass_side],solid:1},
+  dirt:{name:'Dirt',tiles:all6(T.dirt),solid:1},
+  planks:{name:'Planks',tiles:all6(T.planks),solid:1},
+  log:{name:'Log',tiles:[T.log_side,T.log_side,T.log_top,T.log_top,T.log_side,T.log_side],solid:1},
+  stone:{name:'Stone Bricks',tiles:all6(T.stone),solid:1},
+  glass:{name:'Glass',tiles:all6(T.glass),glass:1},
+  door:{name:'Door',tiles:all6(T.door_bottom),door:1},
+  roof:{name:'Roof Tiles',tiles:all6(T.roof),solid:1},
+  leaves:{name:'Leaves',tiles:all6(T.leaves)},
+  path:{name:'Gravel Path',tiles:[T.dirt,T.dirt,T.path,T.dirt,T.dirt,T.dirt],solid:1},
+  rock:{name:'Rock',tiles:all6(T.rock),solid:1},
+  sand:{name:'Sand',tiles:all6(T.sand),solid:1},
+  torch:{name:'Torch',tiles:all6(T.log_side),torch:1},
+  water:{name:'Water',tiles:all6(T.water),water:1},
+};
+// inventory items (slot 0 is the bare hand used for gathering)
+const ITEMS=[
+  {id:'hand',name:'Hand'},{id:'log',name:'Log'},{id:'planks',name:'Planks'},{id:'stone',name:'Stone'},{id:'glass',name:'Glass'},
+  {id:'door',name:'Door'},{id:'torch',name:'Torch'},{id:'roof',name:'Roof Tiles'},{id:'sand',name:'Sand'},{id:'dirt',name:'Dirt'},{id:'leaves',name:'Leaves'}];
+const KEYS=['1','2','3','4','5','6','7','8','9','0','-'];
+const IIDX={};ITEMS.forEach((it,i)=>IIDX[it.id]=i);
+const INAME={};ITEMS.forEach(it=>INAME[it.id]=it.name);
+const DROP={water:null,grass:'dirt',dirt:'dirt',path:'dirt',rock:'stone',sand:'sand',log:'log',leaves:'leaves',planks:'planks',stone:'stone',glass:'glass',door:'door',torch:'torch',roof:'roof'};
+const MINE_T={log:.55,leaves:.2,rock:.7,sand:.3,grass:.45,dirt:.4,path:.45,planks:.35,stone:.5,glass:.25,door:.35,torch:.1,roof:.4};
+const RECIPES=[
+  {out:'planks',n:4,need:{log:1},label:'4 Planks',cost:'1 Log'},
+  {out:'glass',n:1,need:{sand:1},label:'1 Glass',cost:'1 Sand'},
+  {out:'door',n:1,need:{planks:3},label:'1 Door',cost:'3 Planks'},
+  {out:'torch',n:2,need:{planks:1},label:'2 Torches',cost:'1 Planks'},
+  {out:'roof',n:2,need:{stone:1},label:'2 Roof Tiles',cost:'1 Stone'},
+];
+
+// ------------------------------------------------------------------ base world: floating grass island with trees, rocks and a sandy beach
+let CX=3, CZ=2.5;
+const IX0=-10,IX1=16,IZ0=-10,IZ1=15;
+function inIsland(x,z){const dx=Math.abs(x+.5-3)-(13-3.5),dz=Math.abs(z+.5-2.5)-(13-3.5);if(dx>0&&dz>0&&dx*dx+dz*dz>3.5*3.5)return false;return x>=IX0&&x<=IX1&&z>=IZ0&&z<=IZ1;}
+const isBeach=(x,z)=>x+z>=24;
+const base=new Map(), flowers=[], sites=[];
+function nat(k,type,site){const b={type,t:-1e9,nat:site};base.set(k,b);if(site>=0)sites[site].blocks.push([k,type]);}
+const TREES=[[-7,-7],[13,-6],[-6,12],[-9,2],[14,2],[-2,-8],[9,-8],[-8,7],[7,12],[11,7]];
+const ROCKS=[[-5,-2],[10,-3],[-5,5],[6,-6],[0,9],[12,10]];
+// the classic island (the default level), exactly as before
+function buildDefault(){base.clear();flowers.length=0;sites.length=0;
+for(let x=IX0;x<=IX1;x++)for(let z=IZ0;z<=IZ1;z++){if(!inIsland(x,z))continue;
+  const surf=(x===3&&z<=-1&&z>=-10)?'path':isBeach(x,z)?'sand':'grass';
+  nat(key(x,-1,z),surf,-1);nat(key(x,-2,z),isBeach(x,z)?'sand':'dirt',-1);nat(key(x,-3,z),'dirt',-1);}
+for(const [tx,tz] of TREES){const s=sites.push({kind:'tree',blocks:[]})-1;
+  for(let y=0;y<=3;y++)nat(key(tx,y,tz),'log',s);
+  for(let y=3;y<=6;y++){const r=y<=4?2:1;for(let dx=-r;dx<=r;dx++)for(let dz=-r;dz<=r;dz++){if(r===2&&Math.abs(dx)===2&&Math.abs(dz)===2)continue;if(y===6&&Math.abs(dx)+Math.abs(dz)>1)continue;const k=key(tx+dx,y,tz+dz);if(!base.has(k))nat(k,'leaves',s);}}}
+ROCKS.forEach(([rx,rz],ri)=>{const s=sites.push({kind:'rock',blocks:[]})-1;
+  const OFF=[[0,0],[1,0],[0,1],[1,1],[-1,0],[0,-1],[-1,1],[1,-1]];
+  OFF.forEach(([dx,dz],j)=>{if(j>=3&&hash(ri,j)>.5)return;const x=rx+dx,z=rz+dz;if(!inIsland(x,z)||base.has(key(x,0,z)))return;nat(key(x,0,z),'rock',s);
+    if(j===0||(j<4&&hash(ri,j+9)<.45))nat(key(x,1,z),'rock',s);});});
+{const s=sites.push({kind:'sand',blocks:[]})-1;
+ for(let x=IX0;x<=IX1;x++)for(let z=IZ0;z<=IZ1;z++){if(!inIsland(x,z)||x+z<26||base.has(key(x,0,z)))continue;const h=hash(x*3+1,z*5+2);if(h<.4){nat(key(x,0,z),'sand',s);if(h<.12)nat(key(x,1,z),'sand',s);}}}
+{const FC=[[230,60,60],[250,210,60],[90,120,240],[250,250,250],[240,130,200]];let n=0;
+ for(let i=0;n<46&&i<900;i++){const x=IX0+Math.floor(hash(i,1)*(IX1-IX0+1)),z=IZ0+Math.floor(hash(i,2)*(IZ1-IZ0+1));
+  if(!inIsland(x,z)||(x>=-1&&x<=7&&z>=-2&&z<=6)||x===3||isBeach(x,z)||base.has(key(x,0,z)))continue;
+  flowers.push({x:x+.3+hash(i,3)*.4,z:z+.3+hash(i,4)*.4,c:FC[Math.floor(hash(i,5)*FC.length)],cx:x,cz:z});n++;}}
+}
+buildDefault();
+
+// ------------------------------------------------------------------ custom levels: build the island from level data
+const BT=['grass','dirt','sand','stone','rock','log','leaves','planks','glass','door','roof','path','torch','water'];
