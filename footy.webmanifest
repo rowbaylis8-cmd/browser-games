@@ -1,0 +1,11 @@
+{
+  "name": "Footy Goal Kicker",
+  "short_name": "Footy",
+  "start_url": "footy.html",
+  "display": "standalone",
+  "theme_color": "#13294b",
+  "background_color": "#13294b",
+  "icons": [
+    {"src": "footy-icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any"}
+  ]
+}
