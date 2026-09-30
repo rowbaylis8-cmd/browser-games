@@ -178,4 +178,4 @@ function loop(now){const dt=Math.min(.05,(now-last)/1000);last=now;step(dt);draw
 if(qs.has('demo')){players=[{name:'Alf',g:3,b:1,c:COLORS[0]},{name:'Sam',g:2,b:2,c:COLORS[1]}];document.getElementById('setup').style.display='none';newGame();players[0].g=3;players[0].b=1;players[1].g=2;players[1].b=2;cur=1;updScore();}else setupUI();
 if(qs.has('demo')){mouseX=0.53;state='fly';ball={x:shot.side*0.6,y:7,z:shot.d*0.7,vx:0,vy:0,vz:0,spin:1,crossed:false};state='demo';}
 requestAnimationFrame(loop);
-</script><script>if('serviceWorker' in navigator){navigator.serviceWorker.register('footy-sw.js').catch(()=>{});}</script></body></html>
+</script><script>if('serviceWorker' in navigator){navigator.serviceWorker.register('footy-sw.js',{scope:'./footy.html'}).catch(()=>{});}</script></body></html>
