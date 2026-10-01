@@ -1,6 +1,6 @@
-// Service worker for Footy Goal Kicker.
+// Service worker for Footy Match (full 4-quarter game + goal kicking practice).
 // Only handles requests for footy.html so it never hijacks the other games' pages.
-const CACHE = 'footy-v2';
+const CACHE = 'footy-v3';
 const PAGE = 'footy.html';
 
 self.addEventListener('install', event => {
