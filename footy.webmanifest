@@ -1,8 +1,10 @@
 {
-  "name": "Footy Goal Kicker",
+  "name": "Footy Match & Goal Kicker",
   "short_name": "Footy",
+  "description": "A kids' Aussie rules footy game: 4-quarter matches vs the computer or a friend, plus goal kicking practice.",
   "start_url": "footy.html",
   "display": "standalone",
+  "orientation": "landscape",
   "theme_color": "#13294b",
   "background_color": "#13294b",
   "icons": [
