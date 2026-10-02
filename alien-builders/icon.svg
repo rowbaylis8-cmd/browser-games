@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <defs><linearGradient id="sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#2f9ff0"/><stop offset=".6" stop-color="#8fdcff"/><stop offset="1" stop-color="#d8f6ff"/></linearGradient>
+  <clipPath id="body"><circle cx="256" cy="250" r="112"/></clipPath></defs>
+  <rect width="512" height="512" fill="url(#sky)"/>
+  <circle cx="415" cy="95" r="72" fill="#fff6a8" opacity=".25"/><circle cx="415" cy="95" r="47" fill="#fff6a8"/>
+  <rect y="410" width="512" height="102" fill="#9c6b3f"/><rect y="410" width="512" height="15" fill="#5ccf4a"/>
+  <g stroke="#1b1430" stroke-opacity=".35" stroke-width="2">
+    <rect x="0" y="378" width="32" height="32" fill="#ff6fd8"/><rect x="32" y="378" width="32" height="32" fill="#ff4d4d"/><rect x="64" y="378" width="32" height="32" fill="#2ec4b6"/>
+    <rect x="32" y="346" width="32" height="32" fill="#ff9f1c"/><rect x="64" y="346" width="32" height="32" fill="#3a86ff"/><rect x="32" y="314" width="32" height="32" fill="#ffd23f"/><rect x="64" y="314" width="32" height="32" fill="#9b5de5"/><rect x="32" y="282" width="32" height="32" fill="#4cd964"/>
+    <rect x="416" y="378" width="32" height="32" fill="#ff9f1c"/><rect x="448" y="378" width="32" height="32" fill="#2ec4b6"/><rect x="480" y="378" width="32" height="32" fill="#ff9f1c"/>
+    <rect x="416" y="346" width="32" height="32" fill="#ffd23f"/><rect x="448" y="346" width="32" height="32" fill="#3a86ff"/><rect x="480" y="346" width="32" height="32" fill="#ffd23f"/>
+    <rect x="448" y="314" width="32" height="32" fill="#9b5de5"/><rect x="448" y="282" width="32" height="32" fill="#ff6fd8"/><rect x="448" y="250" width="32" height="32" fill="#ff4d4d"/>
+    <rect x="128" y="378" width="32" height="32" fill="#ff6fd8"/><rect x="160" y="378" width="32" height="32" fill="#ff4d4d"/><rect x="192" y="378" width="32" height="32" fill="#ff9f1c"/><rect x="224" y="378" width="32" height="32" fill="#ffd23f"/>
+    <rect x="256" y="378" width="32" height="32" fill="#4cd964"/><rect x="288" y="378" width="32" height="32" fill="#2ec4b6"/><rect x="320" y="378" width="32" height="32" fill="#3a86ff"/><rect x="352" y="378" width="32" height="32" fill="#9b5de5"/>
+  </g>
+  <ellipse cx="200" cy="362" rx="34" ry="18" fill="#e0a800" stroke="#1b1430" stroke-width="5"/><ellipse cx="312" cy="362" rx="34" ry="18" fill="#e0a800" stroke="#1b1430" stroke-width="5"/>
+  <circle cx="256" cy="250" r="112" fill="#ffd23f"/>
+  <g clip-path="url(#body)" fill="#ff3fa4"><circle cx="206" cy="205" r="25"/><circle cx="299" cy="194" r="19"/><circle cx="318" cy="267" r="24"/><circle cx="239" cy="297" r="27"/><circle cx="180" cy="263" r="15"/><circle cx="290" cy="320" r="14"/>
+    <ellipse cx="256" cy="356" rx="146" ry="50" fill="#000" opacity=".18"/><ellipse cx="217" cy="196" rx="50" ry="27" fill="#fff" opacity=".28" transform="rotate(-28 217 196)"/></g>
+  <circle cx="256" cy="250" r="112" fill="none" stroke="#1b1430" stroke-width="12"/>
+  <circle cx="216" cy="233" r="27" fill="#fff" stroke="#1b1430" stroke-width="6"/><circle cx="296" cy="233" r="27" fill="#fff" stroke="#1b1430" stroke-width="6"/>
+  <circle cx="222" cy="243" r="14" fill="#1b1430"/><circle cx="302" cy="243" r="14" fill="#1b1430"/><circle cx="218" cy="238" r="5" fill="#fff"/><circle cx="298" cy="238" r="5" fill="#fff"/>
+  <path d="M232 287 q24 22 48 0" fill="none" stroke="#1b1430" stroke-width="8" stroke-linecap="round"/>
+</svg>
