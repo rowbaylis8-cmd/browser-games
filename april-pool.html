@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>April Pool</title>
+<meta name="theme-color" content="#ff6fb5">
+<style>
+  html,body{margin:0;height:100%;overflow:hidden;font-family:"Trebuchet MS",system-ui,Arial,sans-serif;color:#1d1b3a;
+    background:linear-gradient(160deg,#ffe66d 0%,#ff9f68 35%,#ff6fb5 70%,#8f7bff 100%)}
+  #wrap{position:relative;width:100vw;height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center}
+  #hud{display:flex;gap:14px;align-items:center;margin-bottom:8px;color:#fff;font-weight:800;text-shadow:0 2px 4px rgba(0,0,0,.3);font-size:18px;flex-wrap:wrap;justify-content:center}
+  .pill{background:rgba(255,255,255,.25);padding:6px 14px;border-radius:999px}
+  .pill.on{background:#fff;color:#5b2a86;text-shadow:none;box-shadow:0 4px 0 rgba(91,42,134,.35)}
+  canvas{border-radius:22px;box-shadow:0 10px 0 rgba(91,42,134,.35),0 18px 30px rgba(0,0,0,.18);max-width:98vw;max-height:84vh;touch-action:none;background:#fff}
+  #msg{position:absolute;bottom:40px;left:50%;transform:translateX(-50%);background:#fff;color:#5b2a86;font-weight:800;padding:8px 18px;border-radius:999px;box-shadow:0 5px 0 rgba(91,42,134,.35);opacity:0;transition:opacity .3s;pointer-events:none;white-space:nowrap}
+  .screen{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(29,27,58,.45)}
+  .card{background:#fff;border-radius:22px;padding:26px 34px;max-width:560px;text-align:center;box-shadow:0 10px 0 rgba(91,42,134,.35),0 18px 30px rgba(0,0,0,.18)}
+  h1{margin:0 0 6px;font-size:44px;color:#ff6fb5;text-shadow:0 3px 0 #5b2a86}
+  p{color:#4a4868;line-height:1.45}
+  button{font-family:inherit;font-weight:800;font-size:1.1rem;color:#fff;background:#2ecc71;padding:10px 22px;border:0;border-radius:999px;box-shadow:0 5px 0 #1e8e4e;cursor:pointer;margin:6px}
+  button.alt{background:#8f7bff;box-shadow:0 5px 0 #5b2a86}
+  button:active{transform:translateY(4px);box-shadow:0 1px 0 #1e8e4e}
+  a.back{position:absolute;top:10px;left:12px;color:#fff;font-weight:800;text-decoration:none;text-shadow:0 2px 4px rgba(0,0,0,.3)}
+</style>
+</head>
+<body>
+<div id="wrap">
+  <a class="back" href="index.html">← Arcade</a>
+  <div id="hud"><span id="p1" class="pill">Player 1</span><span id="p2" class="pill">Player 2</span></div>
+  <canvas id="c" width="1000" height="560"></canvas>
+  <div id="msg"></div>
+  <div id="start" class="screen"><div class="card">
+    <h1>🌸 April Pool 🌸</h1>
+    <p>Spring 8-ball! Drag back from the cue ball to aim and set power, then let go to shoot. Pot all your Gold balls (1-7) or Diamonds (9-15), then the 8-ball. Pot the cue ball and your opponent gets a free spot. Miss, and the pocket skeletons will come up to giggle at you!</p>
+    <button id="b2">👫 2 Players</button><button class="alt" id="bai">🤖 vs Computer</button>
+  </div></div>
+  <div id="over" class="screen" style="display:none"><div class="card">
+    <h1 id="ot">You win!</h1><p id="op"></p><button id="again">🔁 Play again</button>
+  </div></div>
+</div>
+<script>
+const cv=document.getElementById('c'),g=cv.getContext('2d');
+const W=1000,H=560,RAIL=46,L=RAIL,T=RAIL,R=W-RAIL,B=H-RAIL,BR=11;
+// pockets: openings shrunk ~25% (was 24 -> 18), capture radius tighter
+const PR=18,CAP=PR-5;
+const pockets=[[L,T],[W/2,T-6],[R,T],[L,B],[W/2,B+6],[R,B]].map(([x,y])=>({x,y}));
+const COLORS=['#fff','#f7c948','#3b82f6','#ef4444','#8b5cf6','#fb923c','#22c55e','#9f1239','#111'];
+let balls=[],turn=0,ai=false,groups=[null,null],state='menu',shot=null,aim=null,petals=[],skels=[],msgT=0,aiTimer=0,lastPotted=[];
+const $=id=>document.getElementById(id);
+function col(n){return COLORS[n>8?n-8:n]}
+function rack(){
+  balls=[{n:0,x:L+(R-L)*0.25,y:H/2,vx:0,vy:0,in:false}];
+  const order=[1,9,2,10,8,3,11,4,12,5,13,6,14,7,15];let k=0;const sx=L+(R-L)*0.72;
+  // ensure 8 in middle (row 3 index 1)
+  for(let r=0;r<5;r++)for(let i=0;i<=r;i++){
+    balls.push({n:order[k++],x:sx+r*BR*1.75,y:H/2+(i-r/2)*BR*2.02,vx:0,vy:0,in:false});}
+}
+function newGame(vsAI){ai=vsAI;turn=0;groups=[null,null];rack();state='aim';skels=[];
+  $('start').style.display='none';$('over').style.display='none';
+  $('p2').textContent=ai?'🤖 Computer':'Player 2';hud();say(ai?'Your break! 🌷':'Player 1 breaks! 🌷');}
+$('b2').onclick=()=>newGame(false);$('bai').onclick=()=>newGame(true);$('again').onclick=()=>{$('over').style.display='none';$('start').style.display='flex';state='menu'};
+function hud(){['p1','p2'].forEach((id,i)=>{const e=$(id);e.classList.toggle('on',turn===i);
+  const base=i===0?'Player 1':(ai?'🤖 Computer':'Player 2');e.textContent=base+(groups[i]?' · '+(groups[i]==='gold'?'🥇 Gold':'💎 Diamonds'):'');});}
+const JOKES=["April Fools! The 8-ball is actually a 7... just kidding 🤡","Breaking news: pool tables now 100% bunny-approved 🐰","Fun fact: this cue is made of spaghetti. April Fools! 🍝","The pockets are hungry. Feed them! 🌼","Warning: petals may cause extreme cuteness 🌸","April Fools! Gravity has been switched off... nope, still on 🙃"];
+function say(t,ms=2200){const m=$('msg');m.textContent=t;m.style.opacity=1;msgT=performance.now()+ms;}
+// ---- input ----
+function pos(e){const r=cv.getBoundingClientRect(),p=e.touches?e.touches[0]||e.changedTouches[0]:e;return{x:(p.clientX-r.left)*W/r.width,y:(p.clientY-r.top)*H/r.height}}
+function myTurn(){return state==='aim'&&!(ai&&turn===1)}
+cv.addEventListener('pointerdown',e=>{if(!myTurn())return;const p=pos(e);aim={sx:p.x,sy:p.y,x:p.x,y:p.y};cv.setPointerCapture(e.pointerId)});
+cv.addEventListener('pointermove',e=>{const p=pos(e);if(aim){aim.x=p.x;aim.y=p.y}else mouse=p});
+cv.addEventListener('pointerup',e=>{if(!aim)return;const c=balls[0];const dx=c.x-aim.x,dy=c.y-aim.y;
+  const pw=Math.min(1,Math.hypot(aim.x-aim.sx,aim.y-aim.sy)/180);aim=null;if(pw<0.04)return;
+  // direction: from mouse toward cue ball
+  const d=Math.hypot(dx,dy)||1;shoot(dx/d,dy/d,pw)});
+let mouse={x:W/2,y:H/2};
+function shoot(ux,uy,pw){const c=balls[0];const sp=pw*26;c.vx=ux*sp;c.vy=uy*sp;
+  shot={first:null,potted:[]};state='moving';}
+window.__shoot=shoot;
+// ---- physics ----
+function step(dt){
+  const act=balls.filter(b=>!b.in);
+  for(const b of act){b.x+=b.vx*dt;b.y+=b.vy*dt;}
+  // ball-ball
+  for(let i=0;i<act.length;i++)for(let j=i+1;j<act.length;j++){const a=act[i],b=act[j];
+    let dx=b.x-a.x,dy=b.y-a.y,d=Math.hypot(dx,dy);if(d<2*BR&&d>0){const nx=dx/d,ny=dy/d,ov=2*BR-d;
+      a.x-=nx*ov/2;a.y-=ny*ov/2;b.x+=nx*ov/2;b.y+=ny*ov/2;
+      const rv=(a.vx-b.vx)*nx+(a.vy-b.vy)*ny;if(rv>0){const imp=rv*0.97;a.vx-=imp*nx;a.vy-=imp*ny;b.vx+=imp*nx;b.vy+=imp*ny;
+        if(shot&&!shot.first){if(a.n===0)shot.first=b.n;else if(b.n===0)shot.first=a.n;}}}}
+  for(const b of act){
+    // pocket capture (tight)
+    for(const p of pockets){if(Math.hypot(b.x-p.x,b.y-p.y)<CAP){b.in=true;b.vx=b.vy=0;b.px=p.x;b.py=p.y;if(shot)shot.potted.push(b.n);break}}
+    if(b.in)continue;
+    // cushions with gaps at pockets
+    const nearCorner=(x,y)=>pockets.some(p=>Math.hypot(x-p.x,y-p.y)<PR+BR*0.9);
+    const inMid=Math.abs(b.x-W/2)<PR;
+    if(b.x<L+BR&&!nearCorner(b.x,b.y)){b.x=L+BR;b.vx=Math.abs(b.vx)*0.8}
+    if(b.x>R-BR&&!nearCorner(b.x,b.y)){b.x=R-BR;b.vx=-Math.abs(b.vx)*0.8}
+    if(b.y<T+BR&&!nearCorner(b.x,b.y)&&!inMid){b.y=T+BR;b.vy=Math.abs(b.vy)*0.8}
+    if(b.y>B-BR&&!nearCorner(b.x,b.y)&&!inMid){b.y=B-BR;b.vy=-Math.abs(b.vy)*0.8}
+    // jaws: pocket mouth points act as bumpers -> must enter fairly straight
+    for(const p of pockets){const mid=p.x===W/2;const jaws=mid?[[p.x-PR,p.y<H/2?T:B],[p.x+PR,p.y<H/2?T:B]]:
+        [[p.x+(p.x<W/2?PR*1.35:-PR*1.35),p.y],[p.x,p.y+(p.y<H/2?PR*1.35:-PR*1.35)]];
+      for(const [jx,jy] of jaws){const dx=b.x-jx,dy=b.y-jy,d=Math.hypot(dx,dy);if(d<BR&&d>0){const nx=dx/d,ny=dy/d;b.x=jx+nx*BR;b.y=jy+ny*BR;
+        const vn=b.vx*nx+b.vy*ny;if(vn<0){b.vx-=1.7*vn*nx;b.vy-=1.7*vn*ny;}}}}
+    // safety bounds
+    b.x=Math.max(L-PR,Math.min(R+PR,b.x));b.y=Math.max(T-PR,Math.min(B+PR,b.y));
+    const s=Math.hypot(b.vx,b.vy),f=0.012*dt;if(s<f+0.02){b.vx=b.vy=0}else{b.vx*=(s-f)/s*Math.pow(0.996,dt);b.vy*=(s-f)/s*Math.pow(0.996,dt);}
+  }
+}
+function moving(){return balls.some(b=>!b.in&&(b.vx||b.vy))}
+const grpOf=n=>n===0||n===8?null:(n<8?'gold':'diamonds');
+function remaining(g){return balls.filter(b=>!b.in&&grpOf(b.n)===g).length}
+function endShot(){
+  const s=shot;shot=null;const me=turn,op=1-turn;const potted=s.potted;
+  const scratch=potted.includes(0);let foul=scratch||s.first===null;
+  if(groups[me]&&s.first!==null&&s.first!==8&&grpOf(s.first)!==groups[me])foul=true;
+  if(groups[me]&&s.first===8&&remaining(groups[me])>0)foul=true;
+  if(potted.includes(8)){const ok=groups[me]&&remaining(groups[me])===0&&!scratch;return gameOver(ok?me:op,ok?'sank the 8-ball like a spring breeze!':'potted the 8-ball too early... April Fools on you!');}
+  if(!groups[me]){const f=potted.find(n=>grpOf(n));if(f&&!scratch){groups[me]=grpOf(f);groups[op]=groups[me]==='gold'?'diamonds':'gold';}}
+  const mine=potted.filter(n=>groups[me]&&grpOf(n)===groups[me]);
+  if(scratch){const c=balls[0];c.in=false;c.vx=c.vy=0;c.x=L+(R-L)*0.25;c.y=H/2;
+    while(balls.some(b=>b!==c&&!b.in&&Math.hypot(b.x-c.x,b.y-c.y)<2*BR+1))c.y+=2*BR+2;}
+  if(mine.length===0){spawnSkels();}
+  if(foul||mine.length===0){turn=op;say(scratch?'Scratch! 🙈 Cue ball respotted':foul?'Foul! Turn passes 🐣':'Missed! 💀 The pocket pals are laughing');}
+  else say('Nice pot! Go again 🌷');
+  if(Math.random()<0.15)setTimeout(()=>say(JOKES[Math.random()*JOKES.length|0],2600),1600);
+  hud();state='aim';aiTimer=performance.now()+1300;
+}
+function gameOver(w,why){state='over';hud();const name=w===0?'Player 1':(ai?'The Computer':'Player 2');
+  $('ot').textContent=(ai&&w===1)?'You lose! 🥀':'🌸 '+name+' wins! 🌸';$('op').textContent=(w===0||!ai?name:'The Computer')+' '+why;
+  setTimeout(()=>$('over').style.display='flex',600);}
+// ---- simple AI ----
+function aiPlay(){const c=balls[0];let best=null;
+  const targets=balls.filter(b=>!b.in&&b.n&&(groups[1]?(remaining(groups[1])?grpOf(b.n)===groups[1]:b.n===8):b.n!==8));
+  for(const b of targets)for(const p of pockets){const dx=p.x-b.x,dy=p.y-b.y,d=Math.hypot(dx,dy);
+    const gx=b.x-dx/d*2*BR,gy=b.y-dy/d*2*BR;const ax=gx-c.x,ay=gy-c.y,ad=Math.hypot(ax,ay);
+    const cut=(ax*dx+ay*dy)/(ad*d);if(cut<0.3)continue;const sc=cut*2-d/800-ad/900;
+    if(!best||sc>best.sc)best={sc,ux:ax/ad,uy:ay/ad,pw:Math.min(1,0.35+(d+ad)/1400)};}
+  if(!best){const b=targets[0]||balls.find(b=>!b.in&&b.n);const ax=b.x-c.x,ay=b.y-c.y,ad=Math.hypot(ax,ay);best={ux:ax/ad,uy:ay/ad,pw:.6}}
+  const j=(Math.random()-.5)*0.05;const ux=best.ux*Math.cos(j)-best.uy*Math.sin(j),uy=best.ux*Math.sin(j)+best.uy*Math.cos(j);
+  shoot(ux,uy,best.pw);}
+// ---- skeletons ----
+function spawnSkels(){const t=performance.now();skels=pockets.map((p,i)=>({p,t0:t+i*60,dir:p.y<H/2?1:-1}));}
+window.__skels=spawnSkels;
+function drawSkel(s,now){const e=(now-s.t0)/1000;if(e<0||e>1.6)return;
+  const rise=e<0.3?e/0.3:e>1.25?Math.max(0,(1.6-e)/0.35):1;const p=s.p;
+  g.save();g.beginPath();g.rect(p.x-60,p.y-120,120,120+PR*0.4);g.clip(); // hide body below pocket mouth
+  g.translate(p.x,p.y+(1-rise)*70);g.lineCap='round';g.strokeStyle='#fffbea';g.fillStyle='#fffbea';g.lineWidth=4;
+  g.beginPath();g.moveTo(0,0);g.lineTo(0,-26);g.stroke();
+  for(let r=0;r<3;r++){g.beginPath();g.moveTo(-8,-8-r*6);g.lineTo(8,-8-r*6);g.stroke()}
+  const wave=Math.sin(e*14);g.beginPath();g.moveTo(-7,-22);g.lineTo(-20,-12);g.stroke();
+  g.beginPath();g.moveTo(7,-22);g.lineTo(18,-38+wave*8);g.stroke();g.beginPath();g.arc(19,-40+wave*8,3,0,7);g.fill();
+  const sy=-40;g.beginPath();g.arc(0,sy,13,0,7);g.fill();
+  const jaw=Math.abs(Math.sin(e*20))*4;g.fillRect(-7,sy+9+jaw,14,5);
+  g.fillStyle='#2b1b3a';g.beginPath();g.arc(-5,sy-1,3.5,0,7);g.arc(5,sy-1,3.5,0,7);g.fill();
+  g.fillRect(-1,sy+4,2,2);g.fillStyle='#ff9ecf';g.beginPath();g.arc(-9,sy+5,2.5,0,7);g.arc(9,sy+5,2.5,0,7);g.fill();
+  g.restore();}
+// ---- petals ----
+for(let i=0;i<26;i++)petals.push({x:Math.random()*W,y:Math.random()*H,s:4+Math.random()*5,v:.3+Math.random()*.6,r:Math.random()*6,w:Math.random()*6});
+// ---- draw ----
+function draw(now){
+  g.clearRect(0,0,W,H);
+  let gr=g.createLinearGradient(0,0,W,H);gr.addColorStop(0,'#ff9fd0');gr.addColorStop(1,'#b48bff');g.fillStyle=gr;rr(0,0,W,H,26);g.fill();
+  g.fillStyle='#fff7';for(let i=0;i<14;i++){const x=40+i*70;g.beginPath();g.arc(x,23,4,0,7);g.arc(x,H-23,4,0,7);g.fill()}
+  gr=g.createRadialGradient(W/2,H/2,50,W/2,H/2,520);gr.addColorStop(0,'#7fdc9a');gr.addColorStop(1,'#3fae6a');g.fillStyle=gr;g.fillRect(L,T,R-L,B-T);
+  g.strokeStyle='#ffffff55';g.beginPath();g.moveTo(L+(R-L)*.25,T);g.lineTo(L+(R-L)*.25,B);g.stroke();
+  for(const p of pockets){g.fillStyle='#2b1b3a';g.beginPath();g.arc(p.x,p.y,PR,0,7);g.fill();g.strokeStyle='#ffe66d';g.lineWidth=3;g.stroke();g.lineWidth=1}
+  for(const s of skels)drawSkel(s,now);
+  for(const b of balls){if(b.in)continue;drawBall(b.x,b.y,b.n,BR,now);}
+  // lapis chalk cube on the top rail
+  g.save();g.translate(W*0.74,22);g.rotate(-0.18);g.fillStyle='#1e3a8a';g.fillRect(-9,-9,18,18);g.fillStyle='#2f55c4';g.fillRect(-9,-9,18,5);
+  g.fillStyle='#ffd54a';[[-5,0],[3,4],[5,-3],[-2,6]].forEach(([x,y])=>g.fillRect(x,y,1.5,1.5));g.fillStyle='#9bb7ff';g.beginPath();g.arc(0,1,3.5,0,7);g.fill();g.restore();
+  // potted tray
+  let tx=60;for(const b of balls)if(b.in&&b.n){drawBall(tx,H-23,b.n,8,now,true);tx+=20}
+  // cue & aim
+  if(state==='aim'&&!(ai&&turn===1)){const c=balls[0];const src=aim?{x:aim.x,y:aim.y}:mouse;let dx=c.x-src.x,dy=c.y-src.y,d=Math.hypot(dx,dy)||1;const ux=dx/d,uy=dy/d;
+    const pw=aim?Math.min(1,Math.hypot(aim.x-aim.sx,aim.y-aim.sy)/180):0;
+    g.setLineDash([6,6]);g.strokeStyle='#fff';g.beginPath();g.moveTo(c.x,c.y);g.lineTo(c.x+ux*300,c.y+uy*300);g.stroke();g.setLineDash([]);
+    const back=BR+6+pw*60;g.lineCap='round';g.strokeStyle='#1e3a8a';g.lineWidth=8;g.beginPath();g.moveTo(c.x-ux*(back+16),c.y-uy*(back+16));g.lineTo(c.x-ux*(back+270),c.y-uy*(back+270));g.stroke();
+    g.strokeStyle='#2f55c4';g.lineWidth=3;g.beginPath();g.moveTo(c.x-ux*(back+16)-uy*1.5,c.y-uy*(back+16)+ux*1.5);g.lineTo(c.x-ux*(back+270)-uy*1.5,c.y-uy*(back+270)+ux*1.5);g.stroke();
+    g.fillStyle='#ffd54a';for(let i=0;i<22;i++){const t=back+24+((i*37)%240),o=((i*13)%7-3)*0.9;g.fillRect(c.x-ux*t-uy*o-0.8,c.y-uy*t+ux*o-0.8,1.6,1.6);}
+    g.strokeStyle='#e8b923';g.lineWidth=7;g.lineCap='butt';g.beginPath();g.moveTo(c.x-ux*(back+3),c.y-uy*(back+3));g.lineTo(c.x-ux*(back+16),c.y-uy*(back+16));g.stroke();
+    g.strokeStyle='#5b8dd6';g.beginPath();g.moveTo(c.x-ux*back,c.y-uy*back);g.lineTo(c.x-ux*(back+3),c.y-uy*(back+3));g.stroke();g.lineWidth=1;g.lineCap='round';
+    // power meter
+    g.fillStyle='#fff';rr(W-34,T+20,16,B-T-40,8);g.fill();const ph=(B-T-44)*pw;
+    gr=g.createLinearGradient(0,B-20,0,T+20);gr.addColorStop(0,'#2ecc71');gr.addColorStop(.6,'#ffe66d');gr.addColorStop(1,'#ff4f7b');g.fillStyle=gr;rr(W-32,B-22-ph,12,ph,6);g.fill();}
+  // petals
+  for(const p of petals){p.x+=p.v+Math.sin(now/900+p.w)*.3;p.y+=p.v*.6;p.r+=.02;if(p.x>W+10){p.x=-10}if(p.y>H+10)p.y=-10;
+    g.save();g.translate(p.x,p.y);g.rotate(p.r);g.fillStyle='#ffd1e8';g.beginPath();g.ellipse(0,0,p.s,p.s*.55,0,0,7);g.fill();g.fillStyle='#ff9ecf';g.beginPath();g.arc(-p.s*.6,0,1.4,0,7);g.fill();g.restore();}
+}
+function drawBall(x,y,n,r,now,small){g.save();g.translate(x,y);
+  if(!small){g.fillStyle='rgba(0,0,0,.2)';g.beginPath();g.arc(2,3,r,0,7);g.fill();}
+  let gr;
+  if(n===0){g.fillStyle='#fffdf7';g.beginPath();g.arc(0,0,r,0,7);g.fill();}
+  else if(n<8){gr=g.createRadialGradient(-r*.4,-r*.4,1,0,0,r);gr.addColorStop(0,'#fff6c8');gr.addColorStop(.35,'#f5cf4a');gr.addColorStop(.75,'#c99a16');gr.addColorStop(1,'#7a5a05');g.fillStyle=gr;g.beginPath();g.arc(0,0,r,0,7);g.fill();}
+  else if(n===8){const gl=0.6+0.4*Math.sin(now/300);g.shadowColor='rgba(255,170,0,'+gl+')';g.shadowBlur=14;
+    gr=g.createRadialGradient(-r*.4,-r*.4,1,0,0,r);gr.addColorStop(0,'#ffe08a');gr.addColorStop(.4,'#d48a00');gr.addColorStop(1,'#6b3a00');g.fillStyle=gr;g.beginPath();g.arc(0,0,r,0,7);g.fill();
+    g.shadowBlur=0;g.strokeStyle='rgba(255,220,120,'+gl+')';g.lineWidth=2;g.beginPath();g.arc(0,0,r+1.5,0,7);g.stroke();}
+  else{gr=g.createRadialGradient(-r*.3,-r*.3,1,0,0,r);gr.addColorStop(0,'#ffffff');gr.addColorStop(.5,'#d6f1ff');gr.addColorStop(1,'#8fc3e8');g.fillStyle=gr;g.beginPath();g.arc(0,0,r,0,7);g.fill();
+    g.strokeStyle='rgba(90,150,200,.55)';g.lineWidth=.8;for(let k=0;k<8;k++){const a=k*Math.PI/4;g.beginPath();g.moveTo(Math.cos(a)*r*.45,Math.sin(a)*r*.45);g.lineTo(Math.cos(a)*r,Math.sin(a)*r);g.stroke();}
+    g.beginPath();for(let k=0;k<=8;k++){const a=k*Math.PI/4;g.lineTo(Math.cos(a)*r*.45,Math.sin(a)*r*.45)}g.stroke();}
+  if(n){g.fillStyle='#fff';g.beginPath();g.arc(0,0,r*.48,0,7);g.fill();g.fillStyle=n>8?'#1e4f8a':'#111';g.font='bold '+(n===8?r*.75:r*.62)+'px Arial';g.textAlign='center';g.textBaseline='middle';g.fillText(n,0,.5);}
+  g.fillStyle='rgba(255,255,255,.75)';g.beginPath();g.arc(-r*.35,-r*.38,r*.24,0,7);g.fill();
+  if(n>=8&&!small){const tw=(Math.sin(now/180+n*1.7)+1)/2;g.globalAlpha=tw;g.fillStyle='#fff';const sx=r*.55,sy=-r*.55,s=3+tw*2;
+    g.beginPath();g.moveTo(sx,sy-s);g.lineTo(sx+1,sy-1);g.lineTo(sx+s,sy);g.lineTo(sx+1,sy+1);g.lineTo(sx,sy+s);g.lineTo(sx-1,sy+1);g.lineTo(sx-s,sy);g.lineTo(sx-1,sy-1);g.fill();g.globalAlpha=1;}
+  g.restore();}
+function rr(x,y,w,h,r){g.beginPath();g.roundRect?g.roundRect(x,y,w,h,r):g.rect(x,y,w,h)}
+let last=performance.now();
+function loop(now){let dt=Math.min(3,(now-last)/16.67);last=now;
+  if(state==='moving'){for(let i=0;i<8;i++)step(dt/8);if(!moving())endShot();}
+  if(state==='aim'&&ai&&turn===1&&now>aiTimer)aiPlay();
+  if(msgT&&now>msgT){$('msg').style.opacity=0;msgT=0}
+  draw(now);requestAnimationFrame(loop);}
+rack();requestAnimationFrame(loop);
+setInterval(()=>{if(state==='aim'&&Math.random()<0.25)say(JOKES[Math.random()*JOKES.length|0],2600)},20000);
+window.__pool={get balls(){return balls},get state(){return state},pockets};
+</script>
+</body>
+</html>
