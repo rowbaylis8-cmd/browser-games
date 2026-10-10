@@ -2038,5 +2038,6 @@ if(/[?&]debug=1/.test(location.search||''))window.MORPH={get G(){return G;},get 
   sim(sec,bot){const n=Math.round(sec*30);for(let i=0;i<n&&state==='play';i++){if(bot){mouse.down=true;mouse.active=false;if(P.form==='human'&&P.cool<=0)transform(Math.floor(Math.random()*G.unlocked));let fx=0,fy=0,c=0;for(const e of G.enemies){const dx=P.x-e.x,dy=P.y-e.y,d=Math.hypot(dx,dy)||1;if(d<220){fx+=dx/d/d*100;fy+=dy/d/d*100;c++;}}if(bot>1&&c){const l=Math.hypot(fx,fy)||1;joy.active=true;joy.dx=fx/l*0.8-fy/l*0.4;joy.dy=fy/l*0.8+fx/l*0.4;if(c>3)G.spPress=true;}else{joy.active=false;joy.dx=joy.dy=0;}}update(1/30);}mouse.down=false;joy.active=false;joy.dx=joy.dy=0;return{state,time:G.time,night:G.night,day:G.day,hp:P.hp,kills:G.kills,enemies:G.enemies.length,boss:!!G.boss,score:G.score,parts:G.parts.length};},unlockAll(){G.unlocked=6;},give(w,s,c){G.res.wood+=w;G.res.stone+=s;G.res.crystal+=c;}};
 })();
 </script>
+<script src="paywall.js" data-game-id="morphlink" data-game-name="Morphlink"></script>
 </body>
 </html>

@@ -633,4 +633,5 @@ function frame(n){requestAnimationFrame(frame);const rdt=Math.min(.05,Math.max(0
  catch(e){errRun++;lastFrameErr=String(e&&e.message||e)+(e&&e.stack?'  @ '+String(e.stack).split('\n')[1]:'');if(errShown++<5)console.error('Dusty Trail frame error:',e);
   if(errRun>20){try{ctx.fillStyle='rgba(60,0,0,.9)';ctx.fillRect(0,H-90,W,70);ctx.fillStyle='#fff';ctx.font='14px Georgia';ctx.textAlign='center';ctx.fillText('Game error: '+lastFrameErr.slice(0,160),W/2,H-60);ctx.fillText('Please report this text. Reload the page to restart.',W/2,H-38)}catch(x){}}}}
 requestAnimationFrame(frame);
-</script></body></html>
+</script><script src="paywall.js" data-game-id="dusty-trail" data-game-name="Dusty Trail"></script>
+</body></html>
