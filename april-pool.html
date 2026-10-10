@@ -37,7 +37,7 @@
   #collGrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px;margin:8px 0 14px}
   .skin{background:#fff4fa;border-radius:16px;padding:8px;display:flex;flex-direction:column;align-items:center;cursor:pointer;border:3px solid transparent}
   .skin.sel{border-color:#2ecc71}.skin b{color:#5b2a86}.skin small{color:#7a7896}
-  .skin.locked{cursor:default;filter:grayscale(.9);opacity:.5}
+  .skin.locked{cursor:default}.skin.locked b,.skin.locked small,.skin.locked .sunk{opacity:.6}
   #unlockPop{position:absolute;inset:0;z-index:40;display:flex;align-items:center;justify-content:center;pointer-events:none}
   #unlockPop>div{background:#fff;border-radius:22px;padding:18px 30px;text-align:center;font-weight:800;color:#5b2a86;box-shadow:0 10px 0 rgba(91,42,134,.35),0 0 60px #ffe66d}
   #unlockPop.bounce>div{animation:pop .6s cubic-bezier(.3,1.6,.5,1)}
@@ -49,6 +49,28 @@
   .nf input{font:inherit;padding:8px 12px;border-radius:999px;border:3px solid #ffd1e8;width:220px;outline:none}
   button.dif{background:#e9e4ff;color:#5b2a86;box-shadow:0 4px 0 #b9aef0;font-size:.95rem;padding:7px 14px}
   button.dif.sel{background:#8f7bff;color:#fff;box-shadow:0 4px 0 #5b2a86}
+  #collGrid,.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px;margin:8px 0 14px}
+  #coll .card{max-height:92vh;overflow:auto}
+  .sec{margin:6px 0 0;color:#5b2a86}.small{font-size:.9rem;margin:2px 0}
+  .skin{position:relative}.skin.special{background:linear-gradient(160deg,#fff4fa,#efe9ff)}
+  .rare{position:absolute;top:6px;right:6px;background:linear-gradient(90deg,#ff6fb5,#8f7bff);color:#fff;font-size:.72rem;font-weight:800;padding:2px 8px;border-radius:999px}
+  button.buy{font-size:.85rem;padding:5px 12px;margin:6px 0 0;background:#f5b300;box-shadow:0 3px 0 #b07f00;filter:none}
+  button.buy:disabled{background:#c9c5d8;box-shadow:0 3px 0 #9b97b0;cursor:default}
+  .skin.locked button.buy{filter:none;opacity:1}
+  .skin.locked:has(button.buy){opacity:.85}
+  .coins{background:#ffe66d!important;color:#7a4b00!important;text-shadow:none}
+  .coinsBig{display:inline-block;font-weight:800;color:#7a4b00;background:#ffe66d;padding:4px 14px;border-radius:999px;margin:0 0 10px}
+  .coinFloat{position:fixed;left:50%;top:22%;transform:translateX(-50%);font-weight:800;font-size:22px;color:#ffe66d;text-shadow:0 2px 0 #7a4b00,0 0 8px #000;animation:cf 1.6s ease-out forwards;pointer-events:none;z-index:60}
+  @keyframes cf{from{opacity:1;transform:translate(-50%,0)}to{opacity:0;transform:translate(-50%,-60px)}}
+  #coinPop{position:absolute;inset:0;z-index:45;display:flex;align-items:center;justify-content:center;pointer-events:none}
+  #coinPop>div{background:#fff;border-radius:22px;padding:18px 30px;text-align:center;font-weight:800;color:#7a4b00;box-shadow:0 10px 0 rgba(122,75,0,.35),0 0 60px #ffe66d}
+  #coinPop.bounce>div{animation:pop .6s cubic-bezier(.3,1.6,.5,1)}
+  #spinPicker{position:absolute;right:max(8px,calc(50vw - 560px));top:50%;transform:translateY(-50%);background:#fff;border-radius:18px;padding:8px;box-shadow:0 6px 0 rgba(91,42,134,.35);text-align:center;z-index:5}
+  .spT{font-weight:800;color:#5b2a86;font-size:.85rem}.spL{font-size:.7rem;color:#7a7896;max-width:96px}
+  .spGrid{display:grid;grid-template-columns:repeat(3,28px);grid-template-rows:repeat(3,28px);gap:2px;margin:4px auto;width:88px;height:88px;border-radius:50%;background:#fffdf7;border:2px solid #5b2a86;padding:2px}
+  .spBtn{all:unset;cursor:pointer;width:28px;height:28px;border-radius:50%;text-align:center;line-height:28px;font-size:14px;color:#5b2a86}
+  .spBtn.sel{background:#ff4f7b;color:#fff}.spBtn.lk{opacity:.45;font-size:11px}
+  .skin.locked{filter:none}.skin.locked canvas{filter:grayscale(.9);opacity:.5}
   #lock{position:fixed;inset:0;z-index:50;display:flex;align-items:center;justify-content:center;background:linear-gradient(160deg,#ffe66d 0%,#ff9f68 35%,#ff6fb5 70%,#8f7bff 100%)}
   #lock .price{font-size:28px;font-weight:800;color:#5b2a86;margin:4px 0 14px}
   #lock input{font:inherit;font-size:1.05rem;padding:10px 14px;border-radius:999px;border:3px solid #ffd1e8;text-align:center;text-transform:uppercase;width:240px;outline:none}
@@ -66,20 +88,22 @@
 </div></div>
 <div id="wrap">
   <a class="back" href="index.html">← Arcade</a>
-  <div id="hud"><span id="p1" class="pill">Player 1</span><span id="p2" class="pill">Player 2</span></div>
+  <div id="hud"><span id="p1" class="pill">Player 1</span><span id="p2" class="pill">Player 2</span><span id="coinsHud" class="pill coins">🪙 0</span></div>
   <canvas id="c" width="1000" height="560"></canvas>
   <div id="msg"></div>
   <div id="start" class="screen"><div class="card">
     <h1>🌸 April Pool 🌸</h1>
     <p>Spring 8-ball! Drag back from the cue ball to aim and set power, then let go to shoot. Pot all your Gold balls (1-7) or Diamonds (9-15), then the 8-ball. Pot the cue ball and your opponent gets a free spot. Miss, and the pocket skeletons will come up to giggle at you, but a bonus apple gives you one extra shot each turn! 🍎</p>
-    <button id="b2">👫 2 Players</button><button class="alt" id="bai">🤖 vs Computer</button><div id="diffRow" style="margin:10px 0 4px"><b style="color:#5b2a86">Difficulty:</b>
+    <div id="coinsMenu" class="coinsBig">🪙 0</div><button id="b2">👫 2 Players</button><button class="alt" id="bai">🤖 vs Computer</button><div id="diffRow" style="margin:10px 0 4px"><b style="color:#5b2a86">Difficulty:</b>
       <button class="dif" data-d="easy">🌱 Easy</button><button class="dif" data-d="normal">🌷 Normal</button><button class="dif" data-d="hard">🔥 Hard</button></div>
     <div id="livesRow" style="color:#5b2a86;font-weight:800">❤️ Lives: <input type="range" id="livesSl" min="10" max="20" step="1"> <span id="livesVal"></span></div>
     <br><button class="alt" id="bnames" style="background:#ff6fb5;box-shadow:0 5px 0 #b03a7a">✏️ Name your characters</button><button class="alt" id="bcoll" style="background:#ff9f68;box-shadow:0 5px 0 #c4602a">🎱 8 Ball Collection</button>
   </div></div>
   <div id="coll" class="screen" style="display:none;z-index:20"><div class="card" style="max-width:760px">
-    <h1 style="font-size:36px">🎱 8 Ball Collection</h1><p id="collCount"></p><div id="collGrid"></div><button id="collClose">← Back</button>
+    <h1 style="font-size:36px">🎱 8 Ball Collection</h1><div id="coinsColl" class="coinsBig">🪙 0</div><p id="collCount"></p><div id="collGrid"></div><h2 class="sec">✨ Specials</h2><div id="specGrid" class="grid"></div><h2 class="sec">🌀 Spin Shop</h2><p class="small">Pick spins while aiming with the little cue-ball diagram.</p><div id="spinShop" class="grid"></div><button id="collClose">← Back</button>
   </div></div>
+  <div id="coinPop" style="display:none"><div><div style="font-size:26px">🪙 Daily check-in +50 coins 🪙</div><div style="font-size:16px;color:#7a7896">Come back tomorrow for more!</div></div></div>
+  <div id="spinPicker" style="display:none"></div>
   <div id="unlockPop" style="display:none"><div><div style="font-size:24px">🎉 New 8 ball unlocked! 🎉</div><canvas id="upBall" width="90" height="90"></canvas><div id="upName" style="font-size:22px"></div></div></div>
   <div id="namesScr" class="screen" style="display:none;z-index:20"><div class="card">
     <h1 style="font-size:34px">✏️ Name your characters</h1>
@@ -192,30 +216,39 @@ cv.addEventListener('pointerup',e=>{if(placing){placing=false;return;}if(!aim)re
   // direction: from mouse toward cue ball
   const d=Math.hypot(dx,dy)||1;shoot(dx/d,dy/d,pw)});
 let mouse={x:W/2,y:H/2};
-function shoot(ux,uy,pw){placeable[turn]=false;placing=false;const c=balls[0];const sp=pw*26;c.vx=ux*sp;c.vy=uy*sp;
+function shoot(ux,uy,pw,spinOverride){placeable[turn]=false;placing=false;const c=balls[0];const sp=pw*26;c.vx=ux*sp;c.vy=uy*sp;
+  const spin=spinOverride||(humanTurn()&&prog.spins.includes(prog.spin)?prog.spin:'center');
+  c.spin={type:spin,dir:[ux,uy],speed:sp,contact:false,english:spin==='left'?-1:spin==='right'?1:0,engLeft:3,hook:spin==='hook'?1:0,hookSide:1};
   shot={first:null,potted:[]};state='moving';}
 window.__shoot=shoot;
 // ---- physics ----
 function step(dt){
   const act=balls.filter(b=>!b.in);
+  const cb=balls[0];
+  if(cb.spin&&cb.spin.hook>0&&!cb.in){const s2=Math.hypot(cb.vx,cb.vy);if(s2>0.3){const px=-cb.vy/s2,py=cb.vx/s2,f=0.09*cb.spin.hook*dt*cb.spin.hookSide;cb.vx+=px*f;cb.vy+=py*f;}cb.spin.hook*=Math.pow(0.985,dt);if(cb.spin.hook<0.02)cb.spin.hook=0;}
   for(const b of act){b.x+=b.vx*dt;b.y+=b.vy*dt;}
   // ball-ball
   for(let i=0;i<act.length;i++)for(let j=i+1;j<act.length;j++){const a=act[i],b=act[j];
     let dx=b.x-a.x,dy=b.y-a.y,d=Math.hypot(dx,dy);if(d<2*BR&&d>0){const nx=dx/d,ny=dy/d,ov=2*BR-d;
       a.x-=nx*ov/2;a.y-=ny*ov/2;b.x+=nx*ov/2;b.y+=ny*ov/2;
       const rv=(a.vx-b.vx)*nx+(a.vy-b.vy)*ny;if(rv>0){const imp=rv*0.97;a.vx-=imp*nx;a.vy-=imp*ny;b.vx+=imp*nx;b.vy+=imp*ny;
-        if(shot&&!shot.first){if(a.n===0)shot.first=b.n;else if(b.n===0)shot.first=a.n;}}}}
+        if(shot&&!shot.first){if(a.n===0)shot.first=b.n;else if(b.n===0)shot.first=a.n;}
+        const cue=a.n===0?a:b.n===0?b:null;if(cue&&cue.spin&&!cue.spin.contact){cue.spin.contact=true;const [ux,uy]=cue.spin.dir,k=cue.spin.speed;
+          if(cue.spin.type==='follow'){cue.vx+=ux*k*0.42;cue.vy+=uy*k*0.42;}
+          else if(cue.spin.type==='draw'){cue.vx-=ux*k*0.5;cue.vy-=uy*k*0.5;}}
+        if(a.n===8||b.n===8)fx8('hit',(a.x+b.x)/2,(a.y+b.y)/2);}}}
   for(const b of act){
     // pocket capture (tight)
-    for(const p of pockets){if(Math.hypot(b.x-p.x,b.y-p.y)<CAP){b.in=true;b.vx=b.vy=0;b.px=p.x;b.py=p.y;if(shot)shot.potted.push(b.n);break}}
+    for(const p of pockets){if(Math.hypot(b.x-p.x,b.y-p.y)<CAP){b.in=true;b.vx=b.vy=0;b.px=p.x;b.py=p.y;if(shot)shot.potted.push(b.n);if(b.n===8)fx8('sunk',p.x,p.y);break}}
     if(b.in)continue;
     // cushions with gaps at pockets
     const nearCorner=(x,y)=>pockets.some(p=>Math.hypot(x-p.x,y-p.y)<PR+BR*0.9);
     const inMid=Math.abs(b.x-W/2)<PR;
-    if(b.x<L+BR&&!nearCorner(b.x,b.y)){b.x=L+BR;b.vx=Math.abs(b.vx)*0.8}
-    if(b.x>R-BR&&!nearCorner(b.x,b.y)){b.x=R-BR;b.vx=-Math.abs(b.vx)*0.8}
-    if(b.y<T+BR&&!nearCorner(b.x,b.y)&&!inMid){b.y=T+BR;b.vy=Math.abs(b.vy)*0.8}
-    if(b.y>B-BR&&!nearCorner(b.x,b.y)&&!inMid){b.y=B-BR;b.vy=-Math.abs(b.vy)*0.8}
+    const eng=(tx,ty)=>{if(b.n===0&&b.spin&&b.spin.english&&b.spin.engLeft>0){b.spin.engLeft--;const s2=Math.hypot(b.vx,b.vy);b.vx+=tx*b.spin.english*s2*0.35;b.vy+=ty*b.spin.english*s2*0.35;}};
+    if(b.x<L+BR&&!nearCorner(b.x,b.y)){b.x=L+BR;b.vx=Math.abs(b.vx)*0.8;eng(0,1)}
+    if(b.x>R-BR&&!nearCorner(b.x,b.y)){b.x=R-BR;b.vx=-Math.abs(b.vx)*0.8;eng(0,-1)}
+    if(b.y<T+BR&&!nearCorner(b.x,b.y)&&!inMid){b.y=T+BR;b.vy=Math.abs(b.vy)*0.8;eng(-1,0)}
+    if(b.y>B-BR&&!nearCorner(b.x,b.y)&&!inMid){b.y=B-BR;b.vy=-Math.abs(b.vy)*0.8;eng(1,0)}
     // jaws: pocket mouth points act as bumpers -> must enter fairly straight
     for(const p of pockets){const mid=p.x===W/2;const jaws=mid?[[p.x-PR,p.y<H/2?T:B],[p.x+PR,p.y<H/2?T:B]]:
         [[p.x+(p.x<W/2?PR*1.35:-PR*1.35),p.y],[p.x,p.y+(p.y<H/2?PR*1.35:-PR*1.35)]];
@@ -238,6 +271,7 @@ function endShot(){
   if(potted.includes(8)){const ok=groups[me]&&remaining(groups[me])===0&&!scratch;return gameOver(ok?me:op,ok?'sank the 8-ball like a spring breeze!':'potted the 8-ball too early... April Fools on you!');}
   if(!groups[me]){const f=potted.find(n=>grpOf(n));if(f&&!scratch){groups[me]=grpOf(f);groups[op]=groups[me]==='gold'?'diamonds':'gold';}}
   const mine=potted.filter(n=>groups[me]&&grpOf(n)===groups[me]);
+  if(humanTurn()&&mine.length&&!scratch)addCoins(5*mine.length,'pot');
   if(scratch){const c=balls[0];c.in=false;c.vx=c.vy=0;c.x=L+(R-L)*0.25;c.y=H/2;
     while(balls.some(b=>b!==c&&!b.in&&Math.hypot(b.x-c.x,b.y-c.y)<2*BR+1))c.y+=2*BR+2;}
   if(mine.length===0){spawnSkels();}
@@ -250,7 +284,7 @@ function endShot(){
 }
 function gameOver(w,why,livesOut){const sk=SKINS.find(k=>k.id===curSkin)||SKINS[0];$('sunkBanner').style.display=livesOut?'none':'flex';if(!livesOut){prog.sunk[sk.id]=(prog.sunk[sk.id]||0)+1;saveProg();}
   const who=pname(turn);const won=w===turn;
-  $('sunkTxt').textContent=sk.name+' sunk by '+who+'!';$('sunkRes').textContent=won?'🏆 WIN':'🥀 LOSE';$('sunkRes').style.background=won?'#2ecc71':'#ff4f7b';drawPreview($('sunkBall'),sk.id,18);if(!(ai&&w===1)){prog.wins++;if(!scratchedBy[w]&&!(why.includes('too early')))prog.cleanWins++;}checkUnlocks();state='over';hud();const name=pname(w);
+  $('sunkTxt').textContent=sk.name+' sunk by '+who+'!';$('sunkRes').textContent=won?'🏆 WIN':'🥀 LOSE';$('sunkRes').style.background=won?'#2ecc71':'#ff4f7b';drawPreview($('sunkBall'),sk.id,18);if(!(ai&&w===1)){prog.wins++;setTimeout(()=>addCoins(100+(diff==='hard'?25:0),diff==='hard'?'win + Hard Mode bonus':'win'),700);if(!scratchedBy[w]&&!(why.includes('too early')))prog.cleanWins++;}checkUnlocks();state='over';hud();const name=pname(w);
   $('ot').textContent=(ai&&w===1)?'You lose! 🥀':'🌸 '+name+' wins! 🌸';$('op').textContent=livesOut?pname(1-w)+' ran out of lives! '+name+' wins the game.':name+' '+why;
   if(livesOut)$('ot').textContent=(ai&&w===1)?'💔 '+pname(0)+' ran out of lives!':'💔 '+pname(1-w)+' ran out of lives!';
   setTimeout(()=>$('over').style.display='flex',600);}
@@ -296,7 +330,9 @@ function draw(now){
     const k=e<.5?1-Math.abs(Math.cos(e*Math.PI*3))*(1-e/.5)*0+Math.sin(Math.min(1,e/.5)*Math.PI*2.5)*0.25*(1-e/.5)+Math.min(1,e/.25)-0+0:1;const sc=Math.min(1,e/.25)*(1+(e<.6?Math.sin(e*18)*0.18*(1-e/.6):0))*(e>1.7?(2-e)/.3:1);
     g.save();g.translate(W/2,H/2-10);g.scale(sc,sc);g.font='120px serif';g.textAlign='center';g.textBaseline='middle';g.fillText('🍎',0,0);
     g.font='bold 30px "Trebuchet MS",sans-serif';g.lineWidth=6;g.strokeStyle='#5b2a86';const cap=names.apple+' bonus! Take another shot';g.strokeText(cap,0,90);g.fillStyle='#fff';g.fillText(cap,0,90);g.restore();}}
+  drawTrailFx(now);
   for(const b of balls){if(b.in)continue;drawBall(b.x,b.y,b.n,BR,now);}
+  drawParticles(now);
   // lapis chalk cube on the top rail
   g.save();g.translate(W*0.74,22);g.rotate(-0.18);g.fillStyle='#1e3a8a';g.fillRect(-9,-9,18,18);g.fillStyle='#2f55c4';g.fillRect(-9,-9,18,5);
   g.fillStyle='#ffd54a';[[-5,0],[3,4],[5,-3],[-2,6]].forEach(([x,y])=>g.fillRect(x,y,1.5,1.5));g.fillStyle='#9bb7ff';g.beginPath();g.arc(0,1,3.5,0,7);g.fill();g.restore();
@@ -305,8 +341,8 @@ function draw(now){
   if(state==='aim'&&canPlace()){const c=balls[0];g.save();g.strokeStyle='#fff';g.setLineDash([4,4]);g.lineWidth=2;g.beginPath();g.arc(c.x,c.y,BR+6+Math.sin(now/200)*2,0,7);g.stroke();
     g.setLineDash([]);g.font='bold 18px "Trebuchet MS",sans-serif';g.textAlign='center';g.lineWidth=5;g.strokeStyle='#5b2a86';g.strokeText('Drag the cue ball anywhere, then aim',W/2,T+28);g.fillStyle='#fff';g.fillText('Drag the cue ball anywhere, then aim',W/2,T+28);g.restore();}
   // 8 Balls Sunk panel
-  {let x=W/2+40;g.fillStyle='#fff';g.font='bold 12px "Trebuchet MS",sans-serif';g.textAlign='left';g.textBaseline='middle';g.fillText('8 Balls Sunk:',x,H-23);x+=86;
-   const keep=curSkin;for(const k of SKINS){curSkin=k.id;drawBall(x,H-23,8,7,now,true);g.fillStyle='#fff';g.font='bold 11px Arial';g.textAlign='left';g.fillText(prog.sunk[k.id]||0,x+9,H-22);x+=32;}curSkin=keep;}
+  {let x=W/2+30;g.fillStyle='#fff';g.font='bold 12px "Trebuchet MS",sans-serif';g.textAlign='left';g.textBaseline='middle';g.fillText('8 Balls Sunk:',x,H-23);x+=86;
+   const keep=curSkin;for(const k of SKINS){curSkin=k.id;drawBall(x,H-23,8,6,now,true);g.fillStyle='#fff';g.font='bold 10px Arial';g.textAlign='left';g.fillText(prog.sunk[k.id]||0,x+8,H-22);x+=26;}curSkin=keep;}
   // cue & aim
   if(state==='aim'&&!(ai&&turn===1)){const c=balls[0];const src=aim?{x:aim.x,y:aim.y}:mouse;let dx=c.x-src.x,dy=c.y-src.y,d=Math.hypot(dx,dy)||1;const ux=dx/d,uy=dy/d;
     const pw=aim?Math.min(1,Math.hypot(aim.x-aim.sx,aim.y-aim.sy)/180):0;
@@ -351,19 +387,47 @@ function draw8(r,now,skin){const ball=(stops)=>{const gr=g.createRadialGradient(
     g.fillStyle='#3a2a1a';g.beginPath();g.arc(-r*.42,-r*.62,r*.12,0,7);g.arc(-r*.2,-r*.62,r*.12,0,7);g.fill();g.fillRect(-r*.4,-r*.42,r*.18,r*.06);}
   else if(skin==='rainbow'){const h=(now/12)%360,gr=g.createLinearGradient(-r,-r,r,r);for(let k=0;k<=6;k++)gr.addColorStop(k/6,'hsl('+((h+k*60)%360)+',90%,62%)');
     glow('hsl('+h+',100%,65%)',14);g.fillStyle=gr;g.beginPath();g.arc(0,0,r,0,7);g.fill();g.shadowBlur=0;}
+  else if(skin==='galaxy'){glow('rgba(160,90,255,'+gl+')',14);ball([[0,'#3b2a7a'],[.6,'#160d3a'],[1,'#05020f']]);g.shadowBlur=0;
+    for(let k=0;k<9;k++){const tw=(Math.sin(now/220+k*2.1)+1)/2;g.fillStyle='rgba(255,255,255,'+(0.3+0.7*tw)+')';const a=k*2.4,rr2=r*(0.25+((k*37)%60)/100);g.fillRect(Math.cos(a)*rr2,Math.sin(a)*rr2,1.6,1.6);}
+    g.fillStyle='rgba(200,150,255,.25)';g.beginPath();g.ellipse(0,0,r*.9,r*.25,-.5,0,7);g.fill();}
+  else if(skin==='blossom'){glow('rgba(255,140,190,'+gl+')',12);ball([[0,'#fff5fa'],[.5,'#ffb6d5'],[1,'#e0609a']]);g.shadowBlur=0;
+    g.fillStyle='rgba(255,255,255,.75)';for(let k=0;k<5;k++){const a=k*Math.PI*2/5+now/2000;g.beginPath();g.ellipse(Math.cos(a)*r*.62,Math.sin(a)*r*.62,r*.2,r*.11,a,0,7);g.fill();}}
+  else if(skin==='ghost'){const fl=0.55+0.15*Math.sin(now/90)*Math.sin(now/37);g.globalAlpha=fl;glow('rgba(220,240,255,.9)',16);ball([[0,'#ffffff'],[.6,'#dfeaff'],[1,'#9fb4d8']]);g.shadowBlur=0;
+    g.fillStyle='#4a4868';g.beginPath();g.arc(-r*.35,-r*.55,r*.09,0,7);g.arc(-r*.12,-r*.55,r*.09,0,7);g.fill();g.globalAlpha=Math.max(fl,.75);}
+  else if(skin==='goldapple'){glow('rgba(255,200,40,'+gl+')',14);g.beginPath();g.moveTo(0,-r*.75);g.bezierCurveTo(r*.9,-r*1.15,r*1.25,r*.2,r*.45,r*.92);g.quadraticCurveTo(0,r*.8,-r*.45,r*.92);g.bezierCurveTo(-r*1.25,r*.2,-r*.9,-r*1.15,0,-r*.75);
+    const gr2=g.createRadialGradient(-r*.4,-r*.4,1,0,0,r*1.1);gr2.addColorStop(0,'#fff6c8');gr2.addColorStop(.4,'#f5c400');gr2.addColorStop(1,'#8a5d00');g.fillStyle=gr2;g.fill();g.shadowBlur=0;
+    g.fillStyle='#4caf50';g.beginPath();g.ellipse(r*.3,-r*.95,r*.3,r*.13,-.5,0,7);g.fill();g.strokeStyle='#6b3a00';g.lineWidth=1.5;g.beginPath();g.moveTo(0,-r*.75);g.lineTo(r*.05,-r*1.05);g.stroke();}
+  else if(skin==='thunder'){glow('rgba(80,180,255,'+gl+')',16);ball([[0,'#bfe6ff'],[.45,'#2f8cff'],[1,'#0a2a7a']]);g.shadowBlur=0;
+    if(Math.sin(now/70)>0.6){g.strokeStyle='#fff';g.lineWidth=1.2;g.beginPath();g.moveTo(-r*.8,-r*.1);g.lineTo(-r*.4,r*.2);g.lineTo(-r*.2,-r*.15);g.lineTo(r*.1,r*.3);g.stroke();}}
   else{glow('rgba(255,170,0,'+gl+')',14);ball([[0,'#ffe08a'],[.4,'#d48a00'],[1,'#6b3a00']]);g.shadowBlur=0;g.strokeStyle='rgba(255,220,120,'+gl+')';g.lineWidth=2;g.beginPath();g.arc(0,0,r+1.5,0,7);g.stroke();}
 }
 // ---- 8-ball skins & progress ----
 const SKINS=[{id:'gold',name:'Gold 8',req:'Unlocked from the start',ok:()=>true},
- {id:'rose',name:'Rose Quartz 8',req:'Win 1 game',ok:p=>p.wins>=1,prog:p=>[p.wins,1]},
- {id:'lapis',name:'Lapis 8',req:'Pot 25 balls in total',ok:p=>p.potted>=25,prog:p=>[p.potted,25]},
- {id:'diamond',name:'Diamond 8',req:'Win 3 games',ok:p=>p.wins>=3,prog:p=>[p.wins,3]},
- {id:'lava',name:'Lava 8',req:'Win a game without a scratch',ok:p=>p.cleanWins>=1,prog:p=>[p.cleanWins,1]},
- {id:'skeleton',name:'Skeleton 8',req:'Wake the skeletons 20 times',ok:p=>p.skels>=20,prog:p=>[p.skels,20]},
- {id:'rainbow',name:'Rainbow 8',req:'Win 10 games',ok:p=>p.wins>=10,prog:p=>[p.wins,10]}];
+ {id:'rose',price:100,name:'Rose Quartz 8',req:'Win 1 game',ok:p=>p.wins>=1,prog:p=>[p.wins,1]},
+ {id:'lapis',price:200,name:'Lapis 8',req:'Pot 25 balls in total',ok:p=>p.potted>=25,prog:p=>[p.potted,25]},
+ {id:'diamond',price:400,name:'Diamond 8',req:'Win 3 games',ok:p=>p.wins>=3,prog:p=>[p.wins,3]},
+ {id:'lava',price:500,name:'Lava 8',req:'Win a game without a scratch',ok:p=>p.cleanWins>=1,prog:p=>[p.cleanWins,1]},
+ {id:'skeleton',price:600,name:'Skeleton 8',req:'Wake the skeletons 20 times',ok:p=>p.skels>=20,prog:p=>[p.skels,20]},
+ {id:'rainbow',price:1000,name:'Rainbow 8',req:'Win 10 games',ok:p=>p.wins>=10,prog:p=>[p.wins,10]},
+ {id:'galaxy',special:true,price:1500,name:'Galaxy 8',req:'Coins only',ok:()=>false},
+ {id:'blossom',special:true,price:1200,name:'Blossom 8',req:'Coins only',ok:()=>false},
+ {id:'ghost',special:true,price:2000,name:'Ghost 8',req:'Coins only',ok:()=>false},
+ {id:'goldapple',special:true,price:2500,name:'Golden Apple 8',req:'Coins only',ok:()=>false},
+ {id:'thunder',special:true,price:3000,name:'Thunder 8',req:'Coins only',ok:()=>false}];
+const SPINS=[{id:'center',name:'Center',price:0,icon:'•'},{id:'follow',name:'Follow (topspin)',price:150,icon:'⬆'},{id:'draw',name:'Draw (backspin)',price:150,icon:'⬇'},
+ {id:'left',name:'Left English',price:250,icon:'⬅'},{id:'right',name:'Right English',price:250,icon:'➡'},{id:'hook',name:'Hook (curve)',price:500,icon:'↪'}];
 const PKEY='aprilPoolProgress';
-let prog=Object.assign({wins:0,potted:0,cleanWins:0,skels:0,unlocked:['gold'],skin:'gold',sunk:{}},JSON.parse(localStorage.getItem(PKEY)||'{}'));
-prog.sunk=prog.sunk||{};let curSkin=prog.skin;
+let prog=Object.assign({wins:0,potted:0,cleanWins:0,skels:0,unlocked:['gold'],skin:'gold',sunk:{},coins:0,lastCheckin:'',spins:['center'],spin:'center'},JSON.parse(localStorage.getItem(PKEY)||'{}'));
+prog.sunk=prog.sunk||{};prog.coins=Math.max(0,prog.coins|0);if(!Array.isArray(prog.spins))prog.spins=['center'];if(!prog.spins.includes(prog.spin))prog.spin='center';let curSkin=prog.skin;
+// ---- coins (in-game only, never real money) ----
+function addCoins(n,why){if(!n)return;prog.coins+=n;saveProg();coinFloat('+'+n+' 🪙 '+(why||''));updCoins();}
+function updCoins(){const t='🪙 '+prog.coins;['coinsHud','coinsMenu','coinsColl'].forEach(id=>{const e=document.getElementById(id);if(e)e.textContent=t;});}
+function coinFloat(t){const e=document.createElement('div');e.className='coinFloat';e.textContent=t;document.body.appendChild(e);setTimeout(()=>e.remove(),1600);}
+function todayStr(){const d=new Date();return d.getFullYear()+'-'+(d.getMonth()+1)+'-'+d.getDate();}
+function dailyCheckin(){if(prog.lastCheckin!==todayStr()){prog.lastCheckin=todayStr();prog.coins+=50;saveProg();updCoins();
+  const el=$('coinPop');el.style.display='flex';el.classList.remove('bounce');void el.offsetWidth;el.classList.add('bounce');setTimeout(()=>el.style.display='none',2600);}}
+function buySkin(k){if(prog.unlocked.includes(k.id)||prog.coins<k.price)return false;prog.coins-=k.price;prog.unlocked.push(k.id);saveProg();updCoins();popUnlock(k);return true;}
+function buySpin(sp){if(prog.spins.includes(sp.id)||prog.coins<sp.price)return false;prog.coins-=sp.price;prog.spins.push(sp.id);saveProg();updCoins();refreshSpinPicker();return true;}
 function saveProg(){localStorage.setItem(PKEY,JSON.stringify(prog));}
 function checkUnlocks(){for(const k of SKINS)if(!prog.unlocked.includes(k.id)&&k.ok(prog)){prog.unlocked.push(k.id);popUnlock(k);}saveProg();}
 let popQ=[],popBusy=false;
@@ -374,24 +438,74 @@ function nextPop(){const k=popQ.shift();const el=$('unlockPop');if(!k){popBusy=f
 function drawPreview(c,id,r){const pg=g;const ctx=c.getContext('2d');g=ctx;ctx.clearRect(0,0,c.width,c.height);ctx.save();ctx.translate(c.width/2,c.height/2);const s=curSkin;curSkin=id;
   ctx.save();ctx.translate(-0,-0);drawBall(0,0,8,r,performance.now());ctx.restore();curSkin=s;ctx.restore();g=pg;}
 function humanTurn(){return !(ai&&turn===1)}
-function openCollection(){const box=$('collGrid');box.innerHTML='';let n=0;
-  for(const k of SKINS){const un=prog.unlocked.includes(k.id);if(un)n++;const d=document.createElement('div');d.className='skin'+(un?'':' locked')+(prog.skin===k.id?' sel':'');
+function skinCard(k){const un=prog.unlocked.includes(k.id);const d=document.createElement('div');d.className='skin'+(un?'':' locked')+(prog.skin===k.id?' sel':'')+(k.special?' special':'');
     const c=document.createElement('canvas');c.width=c.height=90;d.appendChild(c);
     const pr=k.prog&&!un?' ('+Math.min(k.prog(prog)[0],k.prog(prog)[1])+'/'+k.prog(prog)[1]+')':'';
-    d.insertAdjacentHTML('beforeend','<b>'+(un?'':'🔒 ')+k.name+'</b><span class="sunk">Sunk: '+(prog.sunk[k.id]||0)+'</span><small>'+(un?(prog.skin===k.id?'✔ Selected':'Tap to use'):k.req+pr)+'</small>');
-    if(un)d.onclick=()=>{prog.skin=curSkin=k.id;saveProg();openCollection();};box.appendChild(d);drawPreview(c,k.id,30);}
-  $('collCount').textContent=n+' / '+SKINS.length+' unlocked · Wins: '+prog.wins+' · Balls potted: '+prog.potted;
+    if(k.special){const r=document.createElement('span');r.className='rare';r.textContent='✨ Rare';d.appendChild(r);}
+    const bb=document.createElement('b');bb.textContent=(un?'':'🔒 ')+k.name;d.appendChild(bb);
+    const sk=document.createElement('span');sk.className='sunk';sk.textContent='Sunk: '+(prog.sunk[k.id]||0);d.appendChild(sk);
+    const sm=document.createElement('small');sm.textContent=un?(prog.skin===k.id?'✔ Selected':'Tap to use'):(k.special?'Coins only':k.req+pr+' or');d.appendChild(sm);
+    if(!un&&k.price){const btn=document.createElement('button');btn.className='buy';btn.textContent='Buy 🪙'+k.price;btn.disabled=prog.coins<k.price;
+      btn.onclick=e=>{e.stopPropagation();if(buySkin(k))openCollection();};d.appendChild(btn);}
+    if(un)d.onclick=()=>{prog.skin=curSkin=k.id;saveProg();openCollection();};drawPreview(c,k.id,30);return d;}
+function openCollection(){const box=$('collGrid'),sp=$('specGrid'),shop=$('spinShop');box.innerHTML='';sp.innerHTML='';shop.innerHTML='';let n=0;
+  for(const k of SKINS){if(prog.unlocked.includes(k.id))n++;(k.special?sp:box).appendChild(skinCard(k));}
+  for(const s2 of SPINS){if(s2.id==='center')continue;const own=prog.spins.includes(s2.id);const d=document.createElement('div');d.className='skin'+(own?'':' locked');
+    const ic=document.createElement('div');ic.className='spinIcon';ic.appendChild(spinDiagram(s2.id,60));d.appendChild(ic);
+    const bb=document.createElement('b');bb.textContent=s2.name;d.appendChild(bb);
+    const sm=document.createElement('small');sm.textContent=own?'✔ Owned':'';d.appendChild(sm);
+    if(!own){const btn=document.createElement('button');btn.className='buy';btn.textContent='Buy 🪙'+s2.price;btn.disabled=prog.coins<s2.price;btn.onclick=()=>{if(buySpin(s2))openCollection();};d.appendChild(btn);}
+    shop.appendChild(d);}
+  $('collCount').textContent=n+' / '+SKINS.length+' unlocked · Wins: '+prog.wins+' · Balls potted: '+prog.potted;updCoins();
   $('coll').style.display='flex';}
+// cue-ball spin diagram (small canvas)
+function spinDiagram(id,size){const c=document.createElement('canvas');c.width=c.height=size;const x=c.getContext('2d'),r=size/2-4,m=size/2;
+  x.fillStyle='#fffdf7';x.strokeStyle='#5b2a86';x.lineWidth=2;x.beginPath();x.arc(m,m,r,0,7);x.fill();x.stroke();
+  const off={center:[0,0],follow:[0,-.55],draw:[0,.55],left:[-.55,0],right:[.55,0],hook:[.45,-.35]}[id]||[0,0];
+  x.fillStyle='#ff4f7b';x.beginPath();x.arc(m+off[0]*r,m+off[1]*r,Math.max(3,r*.18),0,7);x.fill();
+  if(id==='hook'){x.strokeStyle='#8f7bff';x.beginPath();x.moveTo(m-r*.5,m+r*.5);x.quadraticCurveTo(m-r*.5,m-r*.3,m+r*.2,m-r*.5);x.stroke();}
+  return c;}
+function refreshSpinPicker(){const p=$('spinPicker');if(!p)return;p.innerHTML='';const t=document.createElement('div');t.className='spT';t.textContent='Spin';p.appendChild(t);
+  const grid=document.createElement('div');grid.className='spGrid';
+  const layout={follow:[2,1],left:[1,2],center:[2,2],right:[3,2],draw:[2,3],hook:[3,1]};
+  for(const s2 of SPINS){const own=prog.spins.includes(s2.id);const b=document.createElement('button');b.className='spBtn'+(prog.spin===s2.id?' sel':'')+(own?'':' lk');
+    b.style.gridColumn=layout[s2.id][0];b.style.gridRow=layout[s2.id][1];b.title=s2.name+(own?'':' (buy in the Spin Shop, 🪙'+s2.price+')');b.textContent=own?s2.icon:'🔒';b.dataset.spin=s2.id;
+    b.onclick=e=>{e.stopPropagation();if(!own){say('🔒 '+s2.name+': buy it in the Spin Shop for 🪙'+s2.price);return}prog.spin=s2.id;saveProg();refreshSpinPicker();};grid.appendChild(b);}
+  p.appendChild(grid);const lb=document.createElement('div');lb.className='spL';lb.textContent=(SPINS.find(x=>x.id===prog.spin)||SPINS[0]).name;p.appendChild(lb);}
+// ---- special 8-ball effects (visual only) ----
+let trail=[],parts=[],flash=0;
+function fx8(ev,x,y){const sk=curSkin,now=performance.now();
+  if(sk==='blossom'){for(let i=0;i<(ev==='sunk'?26:10);i++)parts.push({x,y,vx:(Math.random()-.5)*5,vy:(Math.random()-.5)*5,t0:now,life:1100,kind:'petal',r:Math.random()*6});}
+  if(sk==='goldapple'&&ev==='sunk'){for(let i=0;i<14;i++)parts.push({x,y,vx:(Math.random()-.5)*6,vy:(Math.random()-.5)*6,t0:now,life:1200,kind:'apple'});}
+  if(sk==='thunder'){parts.push({x,y,t0:now,life:300,kind:'bolt',seed:Math.random()});if(ev==='sunk')flash=now;}
+  if(sk==='galaxy'&&ev==='sunk'){for(let i=0;i<20;i++)parts.push({x,y,vx:(Math.random()-.5)*5,vy:(Math.random()-.5)*5,t0:now,life:900,kind:'star'});}
+  if(sk==='ghost'&&ev==='sunk'){parts.push({x,y,vx:0,vy:-1.2,t0:now,life:1200,kind:'boo'});}}
+function drawTrailFx(now){const e=balls.find(b=>b.n===8);
+  if(e&&!e.in&&(curSkin==='galaxy'||curSkin==='ghost')){trail.push({x:e.x,y:e.y,t:now});}
+  trail=trail.filter(p=>now-p.t<450);
+  for(const p of trail){const a=1-(now-p.t)/450;g.fillStyle=curSkin==='galaxy'?'rgba(170,110,255,'+a*.22+')':'rgba(230,240,255,'+a*.25+')';g.beginPath();g.arc(p.x+(curSkin==='ghost'?Math.sin(p.t/60)*2:0),p.y,BR*a,0,7);g.fill();}}
+function drawParticles(now){parts=parts.filter(p=>now-p.t0<p.life);
+  for(const p of parts){const k=(now-p.t0)/p.life;g.save();g.globalAlpha=1-k;
+    if(p.vx!==undefined){p.x+=p.vx;p.y+=p.vy;p.vx*=.96;p.vy*=.96;}
+    if(p.kind==='petal'){g.translate(p.x,p.y);g.rotate(p.r+k*4);g.fillStyle='#ffb6d5';g.beginPath();g.ellipse(0,0,5,3,0,0,7);g.fill();}
+    else if(p.kind==='apple'){g.font='16px serif';g.textAlign='center';g.fillText('🍏',p.x,p.y);}
+    else if(p.kind==='star'){g.fillStyle='#e9d8ff';g.fillRect(p.x,p.y,2.5,2.5);}
+    else if(p.kind==='boo'){g.font='bold 18px "Trebuchet MS"';g.textAlign='center';g.fillStyle='#fff';g.fillText('boo! 👻',p.x,p.y-20);}
+    else if(p.kind==='bolt'){g.strokeStyle='#bfe6ff';g.lineWidth=2;g.shadowColor='#2f8cff';g.shadowBlur=10;g.beginPath();let x=p.x,y=p.y;g.moveTo(x,y);
+      for(let i=0;i<5;i++){x+=Math.sin(p.seed*50+i*3)*12;y+=Math.cos(p.seed*30+i*5)*12;g.lineTo(x,y);}g.stroke();}
+    g.restore();}
+  if(flash&&now-flash<350){g.fillStyle='rgba(200,235,255,'+(0.6*(1-(now-flash)/350))+')';g.fillRect(0,0,W,H);}}
 function rr(x,y,w,h,r){g.beginPath();g.roundRect?g.roundRect(x,y,w,h,r):g.rect(x,y,w,h)}
 let last=performance.now();
 function loop(now){let dt=Math.min(3,(now-last)/16.67);last=now;
   if(state==='moving'){for(let i=0;i<8;i++)step(dt/8);if(!moving())endShot();}
   if(state==='aim'&&ai&&turn===1&&now>aiTimer)aiPlay();
+  {const sp=$('spinPicker'),show=state==='aim'&&myTurn()&&$('start').style.display==='none';if((sp.style.display!=='none')!==show)sp.style.display=show?'block':'none';}
   if(msgT&&now>msgT){$('msg').style.opacity=0;msgT=0}
   draw(now);requestAnimationFrame(loop);}
-rack();requestAnimationFrame(loop);
+rack();refreshSpinPicker();updCoins();dailyCheckin();requestAnimationFrame(loop);
 setInterval(()=>{if(state==='aim'&&Math.random()<0.25)say(JOKES[Math.random()*JOKES.length|0],2600)},20000);
-window.__pool={get lives(){return lives},get placeable(){return placeable},get diff(){return diff},get prog(){return prog},checkUnlocks,get balls(){return balls},get state(){return state},get turn(){return turn},get apple(){return apple},get bonusUsed(){return bonusUsed},pockets};
+window.__pool={addCoins,buySkin,buySpin,SKINS,SPINS,get parts(){return parts},get lives(){return lives},get placeable(){return placeable},get diff(){return diff},get prog(){return prog},checkUnlocks,get balls(){return balls},get state(){return state},get turn(){return turn},get apple(){return apple},get bonusUsed(){return bonusUsed},pockets};
 </script>
 </body>
 </html>
