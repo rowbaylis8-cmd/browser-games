@@ -1,0 +1,519 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>PourRight: Barista Simulator Game in Your Browser | Browser Games Arcade</title>
+<meta name="description" content="PourRight is a free barista simulation you play in your browser, bean to cup. Pick a bean, dial in the grind, pull espresso, steam milk for a latte and brew a pour-over. Every cup starts with a choice.">
+<meta name="theme-color" content="#3b2416">
+<meta property="og:type" content="website">
+<meta property="og:title" content="PourRight: Every cup starts with a choice">
+<meta property="og:description" content="A barista simulation in your browser. Espresso, latte and pour-over, four bean origins, and a daily challenge to serve 100 customers.">
+<meta property="og:url" content="https://rowbaylis8-cmd.github.io/browser-games/pourright/">
+<link rel="canonical" href="https://rowbaylis8-cmd.github.io/browser-games/pourright/">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%233b2416'/%3E%3Cpath d='M14 24h30v14a15 15 0 0 1-30 0z' fill='%23f6ead8'/%3E%3Cpath d='M44 28h4a6 6 0 0 1 0 12h-4' stroke='%23f6ead8' stroke-width='4' fill='none'/%3E%3Cellipse cx='29' cy='25' rx='13' ry='3' fill='%23c98a4b'/%3E%3Cpath d='M24 8c-3 4 3 6 0 10M33 8c-3 4 3 6 0 10' stroke='%23f6ead8' stroke-width='2.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E">
+<style>
+  :root { --bean:#3b2416; --roast:#5a3420; --crema:#c98a4b; --cream:#f6ead8; --milk:#fffaf2; --terra:#d9673b; --terra-d:#a8481f; --sage:#5f8b4c; --sage-d:#41663a; --ink:#2b1a10; --muted:#7a6352; }
+  * { box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  html, body { margin:0; min-height:100%; }
+  body { font-family:"Trebuchet MS", "Segoe UI", system-ui, sans-serif; color:var(--ink); background:radial-gradient(1200px 600px at 50% -10%, #fff4e2 0%, #f1dcc0 45%, #e2c39d 100%) fixed; }
+  a { color:var(--terra-d); }
+  .top { display:flex; align-items:center; justify-content:space-between; gap:10px; padding:10px 14px; background:var(--bean); color:var(--cream); position:sticky; top:0; z-index:20; box-shadow:0 3px 0 rgba(0,0,0,.18); }
+  .top a.back { color:var(--cream); text-decoration:none; font-weight:700; font-size:.95rem; padding:6px 10px; border-radius:10px; background:rgba(255,255,255,.08); }
+  .brand { font-weight:900; letter-spacing:.04em; font-size:1.25rem; cursor:pointer; }
+  .brand span { color:var(--crema); }
+  .iconbtn { border:0; background:rgba(255,255,255,.08); color:var(--cream); font-size:1.1rem; width:40px; height:36px; border-radius:10px; cursor:pointer; }
+  .screen { max-width:1060px; margin:0 auto; padding:16px 14px 40px; }
+  .hidden { display:none !important; }
+  .hero { text-align:center; padding:18px 10px 6px; }
+  .hero h1 { margin:6px 0 0; font-size:clamp(2.6rem, 9vw, 4.4rem); line-height:1; color:var(--bean); letter-spacing:.02em; text-shadow:0 4px 0 #e9c79b; }
+  .hero h1 span { color:var(--terra); }
+  .tagline { font-size:clamp(1.1rem, 3.5vw, 1.45rem); font-style:italic; color:var(--roast); margin:10px 0 4px; }
+  .lede { max-width:640px; margin:6px auto 14px; color:var(--muted); line-height:1.5; }
+  .btn { display:inline-flex; align-items:center; justify-content:center; gap:8px; cursor:pointer; border:0; font:inherit; font-weight:800; font-size:1.08rem; color:#fff; background:var(--terra); padding:12px 22px; border-radius:999px; box-shadow:0 5px 0 var(--terra-d); text-decoration:none; transition:transform .08s, box-shadow .08s, filter .1s; user-select:none; touch-action:manipulation; }
+  .btn:hover { filter:brightness(1.06); }
+  .btn:active { transform:translateY(4px); box-shadow:0 1px 0 var(--terra-d); }
+  .btn:focus-visible, .bean-btn:focus-visible, input:focus-visible, .lvl:focus-visible { outline:3px solid #2f6fd8; outline-offset:3px; }
+  .btn.sage { background:var(--sage); box-shadow:0 5px 0 var(--sage-d); }
+  .btn.ghost { background:#fff; color:var(--roast); box-shadow:0 5px 0 #d8bf9f; }
+  .btn.big { font-size:1.3rem; padding:14px 30px; }
+  .btn[disabled] { opacity:.45; cursor:not-allowed; filter:grayscale(.4); }
+  .btn.hold { width:100%; font-size:1.25rem; padding:18px; background:var(--bean); box-shadow:0 6px 0 #1c0f07; touch-action:none; }
+  .btn.hold.on { background:var(--terra); box-shadow:0 2px 0 var(--terra-d); transform:translateY(4px); }
+  h2.section { margin:26px 4px 10px; font-size:1.35rem; color:var(--bean); }
+  .grid3 { display:grid; grid-template-columns:repeat(auto-fit, minmax(240px, 1fr)); gap:14px; }
+  .grid4 { display:grid; grid-template-columns:repeat(auto-fit, minmax(200px, 1fr)); gap:12px; }
+  .card { background:var(--milk); border-radius:20px; padding:16px; box-shadow:0 6px 0 rgba(90,52,32,.22), 0 12px 24px rgba(59,36,22,.12); border:2px solid #fff; }
+  .lvl { text-align:left; cursor:pointer; font:inherit; color:inherit; width:100%; display:flex; flex-direction:column; gap:6px; }
+  .lvl h3, .card h3 { margin:0; font-size:1.15rem; color:var(--bean); }
+  .lvl p, .card p { margin:0; color:var(--muted); line-height:1.4; font-size:.95rem; }
+  .lvl .meta { display:flex; justify-content:space-between; align-items:center; margin-top:6px; font-weight:700; color:var(--roast); font-size:.9rem; }
+  .lvl.locked { opacity:.62; cursor:not-allowed; }
+  .pill { display:inline-block; font-size:.78rem; font-weight:800; letter-spacing:.06em; text-transform:uppercase; padding:3px 9px; border-radius:999px; background:#f0dcc2; color:var(--roast); }
+  .pill.ok { background:#dcebd2; color:var(--sage-d); }
+  .beancard { display:flex; gap:12px; align-items:flex-start; }
+  .beancard svg { flex:0 0 56px; }
+  .beancard.locked { opacity:.6; }
+  .daily { display:flex; flex-wrap:wrap; gap:16px; align-items:center; justify-content:space-between; background:linear-gradient(135deg, #3b2416, #6b3d22); color:var(--cream); }
+  .daily h3 { color:#ffd9a8; font-size:1.3rem; }
+  .daily p { color:#f1dcc0; }
+  details.how { margin-top:22px; }
+  details.how summary { cursor:pointer; font-weight:800; color:var(--bean); font-size:1.1rem; }
+  details.how li { margin:6px 0; line-height:1.45; }
+  footer.foot { text-align:center; color:var(--muted); font-size:.9rem; margin-top:26px; }
+
+  /* game */
+  .steps { display:flex; gap:6px; flex-wrap:wrap; justify-content:center; margin:2px 0 12px; }
+  .steps span { font-size:.82rem; font-weight:800; padding:5px 11px; border-radius:999px; background:#ead2b3; color:#8a6a52; }
+  .steps span.now { background:var(--terra); color:#fff; }
+  .steps span.done { background:#d6e6cc; color:var(--sage-d); }
+  .play-area { display:grid; grid-template-columns:minmax(0,1.35fr) minmax(280px,1fr); gap:16px; align-items:start; }
+  .stage { background:var(--milk); border-radius:22px; overflow:hidden; box-shadow:0 6px 0 rgba(90,52,32,.22); border:3px solid #fff; }
+  .stage svg { display:block; width:100%; height:auto; touch-action:manipulation; }
+  .panel { display:flex; flex-direction:column; gap:12px; }
+  .panel h3 { margin:0; font-size:1.35rem; color:var(--bean); }
+  .panel p { margin:0; color:var(--muted); line-height:1.45; }
+  .tip { background:#f6e3c8; border-radius:14px; padding:10px 12px; color:var(--roast) !important; font-size:.95rem; }
+  .readouts { display:grid; grid-template-columns:repeat(auto-fit, minmax(110px,1fr)); gap:8px; }
+  .readouts div { background:var(--bean); color:#f1dcc0; border-radius:14px; padding:8px 12px; font-size:.8rem; font-weight:700; letter-spacing:.05em; text-transform:uppercase; }
+  .readouts b { display:block; font-size:1.55rem; color:#fff; letter-spacing:0; font-variant-numeric:tabular-nums; text-transform:none; }
+  .row { display:flex; gap:10px; flex-wrap:wrap; }
+  .row .btn { flex:1 1 auto; }
+  .slider label { display:flex; justify-content:space-between; font-weight:800; color:var(--roast); }
+  input[type=range] { width:100%; height:40px; accent-color:var(--terra); cursor:pointer; touch-action:pan-y; }
+  .ends { display:flex; justify-content:space-between; font-size:.85rem; color:var(--muted); font-weight:700; margin-top:-6px; }
+  .beanpick { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+  .bean-btn { font:inherit; text-align:left; border:3px solid transparent; background:#fff; border-radius:14px; padding:9px 10px; cursor:pointer; color:var(--ink); box-shadow:0 3px 0 #dcc3a3; }
+  .bean-btn b { display:block; font-size:1rem; }
+  .bean-btn small { color:var(--muted); }
+  .bean-btn[aria-pressed=true] { border-color:var(--terra); background:#fff3e6; }
+  .bean-btn[disabled] { opacity:.5; cursor:not-allowed; }
+  .dot { display:inline-block; width:11px; height:11px; border-radius:50%; margin-right:6px; vertical-align:middle; }
+
+  /* daily bar */
+  .dailybar { background:var(--bean); color:var(--cream); border-radius:18px; padding:10px 12px; margin-bottom:12px; }
+  .dailybar .stats { display:flex; gap:14px; flex-wrap:wrap; justify-content:space-between; font-weight:800; }
+  .dailybar .stats b { color:#ffd9a8; font-variant-numeric:tabular-nums; }
+  .dailybar svg { display:block; width:100%; height:auto; margin-top:6px; }
+  .order { background:#fff3e6; border:2px dashed var(--crema); border-radius:14px; padding:8px 12px; font-weight:800; color:var(--roast); }
+
+  /* result */
+  .result { max-width:640px; margin:0 auto; text-align:center; }
+  .result svg.drink { width:200px; height:auto; }
+  .bigscore { font-size:4.2rem; font-weight:900; color:var(--bean); line-height:1; }
+  .bigscore small { font-size:1.3rem; color:var(--muted); }
+  .stars { font-size:2rem; letter-spacing:4px; color:#e2a330; margin:4px 0 10px; }
+  .stars .off { color:#dcc8b0; }
+  .parts { list-style:none; padding:0; margin:10px 0; text-align:left; }
+  .parts li { margin:10px 0; }
+  .parts .lab { display:flex; justify-content:space-between; font-weight:800; color:var(--roast); }
+  .bar { height:12px; background:#ead6bb; border-radius:99px; overflow:hidden; margin-top:4px; }
+  .bar i { display:block; height:100%; background:linear-gradient(90deg, var(--crema), var(--terra)); border-radius:99px; }
+  .parts .det { font-size:.9rem; color:var(--muted); }
+  .tips { text-align:left; background:#f6e3c8; border-radius:14px; padding:10px 14px 10px 30px; color:var(--roast); line-height:1.5; }
+  .unlock { background:var(--sage); color:#fff; font-weight:800; border-radius:14px; padding:10px 14px; margin:10px 0; animation:pop .5s ease; }
+  .points { font-weight:900; color:var(--terra-d); font-size:1.3rem; margin:6px 0; }
+  @keyframes pop { 0% { transform:scale(.6); opacity:0; } 70% { transform:scale(1.06); } 100% { transform:scale(1); opacity:1; } }
+  .toast { position:fixed; left:50%; bottom:24px; transform:translateX(-50%); background:var(--bean); color:var(--cream); padding:10px 18px; border-radius:999px; font-weight:800; z-index:50; box-shadow:0 6px 18px rgba(0,0,0,.25); animation:pop .35s ease; }
+  @media (max-width:760px) { .play-area { grid-template-columns:1fr; } .stage { max-width:560px; margin:0 auto; width:100%; } }
+  @media (prefers-reduced-motion:reduce) { * { animation:none !important; transition:none !important; } }
+</style>
+</head>
+<body>
+<header class="top">
+  <a class="back" href="../">&larr; Arcade</a>
+  <div class="brand" id="brand" role="link" tabindex="0" title="PourRight menu">Pour<span>Right</span> &#9749;</div>
+  <button class="iconbtn" id="mute" aria-label="Toggle sound">&#128266;</button>
+</header>
+
+<section id="menu" class="screen">
+  <div class="hero">
+    <svg width="120" height="110" viewBox="0 0 120 110" aria-hidden="true">
+      <path d="M48 6c-6 8 6 12 0 22M64 4c-6 8 6 12 0 22M80 6c-6 8 6 12 0 22" stroke="#c98a4b" stroke-width="4" fill="none" stroke-linecap="round"/>
+      <ellipse cx="62" cy="100" rx="52" ry="8" fill="#e2c39d"/>
+      <path d="M22 40h80v22a40 36 0 0 1-80 0z" fill="#fffaf2" stroke="#3b2416" stroke-width="4"/>
+      <path d="M102 48h6a12 12 0 0 1 0 24h-8" stroke="#3b2416" stroke-width="5" fill="none"/>
+      <ellipse cx="62" cy="41" rx="38" ry="7" fill="#7a4a2a" stroke="#3b2416" stroke-width="3"/>
+      <path d="M50 40c4-6 10-6 12 0 2-6 8-6 12 0-4 4-8 6-12 9-4-3-8-5-12-9z" fill="#f6ead8"/>
+    </svg>
+    <h1>Pour<span>Right</span></h1>
+    <p class="tagline">&ldquo;Every cup starts with a choice.&rdquo;</p>
+    <p class="lede">A barista simulation that goes from bean to cup, right in your browser. Pick a bean, dial in the grind, pull the shot, texture the milk and master the pour-over.</p>
+    <div class="row" style="justify-content:center;max-width:520px;margin:0 auto">
+      <button class="btn big" id="startBtn">&#9749; Start pouring</button>
+      <button class="btn big sage" id="dailyBtn">&#128197; Daily Challenge</button>
+    </div>
+  </div>
+
+  <h2 class="section">Levels</h2>
+  <div class="grid3" id="levelCards"></div>
+
+  <h2 class="section">Bean origins</h2>
+  <div class="grid4" id="beanCards"></div>
+
+  <h2 class="section">Daily Challenge</h2>
+  <div class="card daily" id="dailyCard"></div>
+
+  <details class="how card">
+    <summary>How to play</summary>
+    <ul>
+      <li><b>Espresso:</b> slide the grinder from fine to coarse, then hold <b>Pull</b> (or press Space) to run the shot. Aim for about 36&nbsp;g in the cup inside the bean&rsquo;s time window. A fast shot means grind finer, a slow one means grind coarser. The shot keeps dripping for a moment after you stop.</li>
+      <li><b>Latte:</b> pull the espresso, then steam the milk. Keep the wand tip near the surface early to stretch in air, then go deeper to roll and heat it. Stop around 60&nbsp;&deg;C with silky microfoam.</li>
+      <li><b>Pour-over:</b> hold <b>Heat</b> to bring the kettle up to temperature, start the bloom pour, and wait for the right bloom time before the main pour. Water temperature and bloom time decide the score.</li>
+      <li><b>Keyboard:</b> Space or Enter does the main action, the left and right arrows move the slider, 1 to 4 picks a bean, and Esc goes back to the menu. Mouse and touch work too.</li>
+      <li>Your progress, best scores and unlocks save in this browser.</li>
+    </ul>
+  </details>
+  <footer class="foot">PourRight is part of the <a href="../">Browser Games Arcade</a>. <a href="../pourright-brief.html">About PourRight</a></footer>
+  <noscript><p class="card">PourRight needs JavaScript turned on to play.</p></noscript>
+</section>
+
+<section id="game" class="screen hidden">
+  <div class="dailybar hidden" id="dailyBar"></div>
+  <div class="steps" id="steps"></div>
+  <div class="play-area">
+    <div class="stage"><svg id="scene" viewBox="0 0 400 300" role="img" aria-label="Coffee bar"></svg></div>
+    <div class="panel card" id="panel"></div>
+  </div>
+</section>
+
+<section id="result" class="screen hidden"><div class="result card" id="resultCard"></div></section>
+<section id="summary" class="screen hidden"><div class="result card" id="summaryCard"></div></section>
+<script>
+(() => {
+'use strict';
+const $ = s => document.querySelector(s);
+const clamp = (v, a = 0, b = 1) => Math.max(a, Math.min(b, v));
+const BEANS = {
+  colombia: { name:'Colombia', note:'Balanced body', flavour:'Caramel, cocoa and a round, balanced body.', color:'#6b3e22', accent:'#e0a526', grind:50, shot:28, win:3.5, pTemp:93, pTol:2.5, bloom:35, bTol:6, bonus:1, tip:'Forgiving starter bean. Medium grind, about 93 °C and a 35 s bloom.', unlock:null },
+  ethiopia: { name:'Ethiopia', note:'Floral notes', flavour:'Jasmine, bergamot and stone fruit.', color:'#8a5a30', accent:'#9b6bd6', grind:38, shot:27, win:2, pTemp:94, pTol:1.5, bloom:40, bTol:4, bonus:1.1, tip:'Delicate and floral. Grind a touch finer, about 94 °C, a longer bloom.', unlock:{ lvl:1, score:70, text:'Score 70+ on Level 1' } },
+  kenya: { name:'Kenya', note:'Bright & juicy', flavour:'Blackcurrant, grapefruit and juicy acidity.', color:'#7b3b26', accent:'#e0484f', grind:44, shot:26, win:2.5, pTemp:96, pTol:1.5, bloom:30, bTol:3.5, bonus:1.15, tip:'Bright single-origin that loves heat: hot water (around 96 °C) and a short bloom.', unlock:{ lvl:2, score:70, text:'Score 70+ on Level 2' } },
+  jamaica: { name:'Jamaica', note:'Blue Mountain rarity', flavour:'Silky, mild and sweet. One of the rarest beans on Earth.', color:'#4a2f22', accent:'#2f8fd8', grind:56, shot:29, win:1.5, pTemp:92, pTol:1, bloom:45, bTol:3, bonus:1.3, tip:'Rare and precise. Slightly coarser, about 92 °C, a long gentle bloom. Worth bonus points.', unlock:{ lvl:3, score:85, text:'Score 85+ on Level 3' } }
+};
+const ORDER = ['colombia', 'ethiopia', 'kenya', 'jamaica'];
+const LEVELS = {
+  1: { name:'Espresso', desc:'Dial in the grind, pull the shot, serve.', steps:['bean','grind','pull'], par:14 },
+  2: { name:'Latte', desc:'Espresso plus milk texturing. Hit the microfoam sweet spot.', steps:['bean','grind','pull','steam'], par:26 },
+  3: { name:'Pour-over', desc:'Water temperature and bloom time decide the score.', steps:['bean','kettle','bloom'], par:20 }
+};
+const STEPNAME = { bean:'Bean', grind:'Grind', pull:'Pull', steam:'Steam', kettle:'Kettle', bloom:'Bloom & pour' };
+const NAMES = ['Maya','Leo','Ava','Noah','Zara','Finn','Isla','Omar','Ruby','Kai','Mia','Theo','Lena','Arlo','Priya','Sam','Ivy','Jack','Nina','Eli','Rosa','Hugo','Tara','Ben','Aiko','Max','Lucy','Raf','Cleo','Jude'];
+const KEY = 'pourright-save-v1';
+const def = () => ({ v:1, best:{1:0,2:0,3:0}, grind:{}, served:0, daily:{}, run:null, mute:false });
+let S;
+try { S = Object.assign(def(), JSON.parse(localStorage.getItem(KEY)) || {}); } catch (e) { S = def(); }
+const save = () => { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {} };
+const levelOpen = l => l === 1 || (l === 2 && S.best[1] >= 70) || (l === 3 && S.best[2] >= 70);
+const beanOpen = b => { const u = BEANS[b].unlock; return !u || S.best[u.lvl] >= u.score; };
+const stars = s => s >= 90 ? 3 : s >= 75 ? 2 : s >= 60 ? 1 : 0;
+const starHtml = s => { const n = stars(s); return '★'.repeat(n) + '<span class="off">' + '★'.repeat(3 - n) + '</span>'; };
+
+// sound
+let ac = null;
+function tone(f, d = .12, type = 'sine', v = .08) {
+  if (S.mute) return;
+  try { ac = ac || new (window.AudioContext || window.webkitAudioContext)(); const o = ac.createOscillator(), g = ac.createGain(); o.type = type; o.frequency.value = f; g.gain.value = v; g.gain.exponentialRampToValueAtTime(.0001, ac.currentTime + d); o.connect(g).connect(ac.destination); o.start(); o.stop(ac.currentTime + d); } catch (e) {}
+}
+const ding = () => { tone(880, .25); setTimeout(() => tone(1320, .3), 120); };
+
+// screens
+function show(id) { ['menu','game','result','summary'].forEach(s => $('#' + s).classList.toggle('hidden', s !== id)); window.scrollTo(0, 0); }
+function toast(t) { const d = document.createElement('div'); d.className = 'toast'; d.textContent = t; document.body.appendChild(d); setTimeout(() => d.remove(), 2600); }
+
+// svg helpers
+const beanSvg = (x, y, r, rot, c) => `<g transform="translate(${x} ${y}) rotate(${rot})"><ellipse rx="${r * 1.3}" ry="${r}" fill="${c}"/><path d="M${-r * 1.1} 0Q0 ${r * .6} ${r * 1.1} 0" stroke="#22120a" stroke-width="${Math.max(1, r / 4)}" fill="none"/></g>`;
+const bagSvg = (b, x, y, s, locked) => { const B = BEANS[b]; return `<g transform="translate(${x} ${y}) scale(${s})" opacity="${locked ? .45 : 1}"><path d="M-24 -30L24 -30L28 34L-28 34Z" fill="#c9a77c" stroke="#5a3420" stroke-width="2"/><rect x="-24" y="-8" width="48" height="20" fill="${B.accent}"/><text y="7" text-anchor="middle" font-size="9" font-weight="800" fill="#fff">${B.name.toUpperCase()}</text>${beanSvg(0, 22, 5, 20, B.color)}${locked ? '<text y="-12" text-anchor="middle" font-size="16">🔒</text>' : ''}</g>`; };
+function rng(seed) { return () => { seed |= 0; seed = seed + 0x6D2B79F5 | 0; let t = Math.imul(seed ^ seed >>> 15, 1 | seed); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+function hash(s) { let h = 2166136261; for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); } return h >>> 0; }
+const BG = '<rect width="400" height="300" fill="#f6ead8"/><g fill="#efdcc2">' + Array.from({ length: 8 }, (_, i) => `<rect x="${i * 50 + 4}" y="0" width="42" height="220" rx="4"/>`).join('') + '</g><rect y="230" width="400" height="70" fill="#8a5a36"/><rect y="226" width="400" height="8" fill="#a8744a"/>';
+
+// game state
+let G = null;
+function newBrew(level, bean, cust) {
+  const steps = LEVELS[level].steps.filter(s => !(cust && s === 'bean'));
+  G = { level, bean, cust, steps, si:0, grind:S.grind[bean] || 50, t:0, y:0, pulling:false, pulled:false, drip:0,
+    m:{ temp:4, foam:0, bub:0, depth:50, on:false }, k:{ temp:82, on:false }, bl:{ started:false, t:0, temp:0, pour:-1 }, start:performance.now() };
+  show('game'); renderDailyBar(); renderStep();
+}
+const step = () => G && G.steps[G.si];
+const speed = () => G.cust ? 5 : 3;
+const flow = () => { const B = BEANS[G.bean]; return 36 / (B.shot - 2.5) * Math.pow(2, (G.grind - B.grind) / 18); };
+
+function renderSteps() { $('#steps').innerHTML = G.steps.map((s, i) => `<span class="${i < G.si ? 'done' : i === G.si ? 'now' : ''}">${i + 1}. ${STEPNAME[s]}</span>`).join(''); }
+function next() { G.si++; if (G.si >= G.steps.length) serve(); else renderStep(); }
+
+function renderStep() {
+  renderSteps();
+  const s = step(), B = BEANS[G.bean], L = LEVELS[G.level], P = $('#panel');
+  const head = `<p><b>Level ${G.level} · ${L.name}</b> · <span class="dot" style="background:${B.accent}"></span>${B.name}</p>`;
+  if (s === 'bean') {
+    P.innerHTML = `<h3>Pick a bean</h3><p><b>Level ${G.level} · ${L.name}</b></p><div class="beanpick">${ORDER.map((b, i) => `<button class="bean-btn" data-bean="${b}" aria-pressed="${b === G.bean}" ${beanOpen(b) ? '' : 'disabled'}><b><span class="dot" style="background:${BEANS[b].accent}"></span>${i + 1}. ${BEANS[b].name}</b><small>${beanOpen(b) ? BEANS[b].note : '🔒 ' + BEANS[b].unlock.text}</small></button>`).join('')}</div><p class="tip" id="binfo"></p><button class="btn" id="go">${G.level === 3 ? 'Fill the kettle ▶' : 'Grind it ▶'}</button>`;
+    P.querySelectorAll('.bean-btn').forEach(b => b.onclick = () => pickBean(b.dataset.bean));
+    pickBean(G.bean);
+  } else if (s === 'grind') {
+    P.innerHTML = `<h3>Dial in the grind</h3>${head}<p class="tip">${B.tip}</p><div class="slider"><label for="rng">Grind setting <output id="gv">${G.grind}</output></label><input type="range" id="rng" min="1" max="100" value="${G.grind}"><div class="ends"><span>Fine</span><span>Medium</span><span>Coarse</span></div></div><button class="btn" id="go">Lock in &amp; tamp ▶</button>`;
+    $('#rng').oninput = e => { G.grind = +e.target.value; $('#gv').textContent = G.grind; };
+  } else if (s === 'pull') {
+    G.t = 0; G.y = 0; G.pulled = false; G.pulling = false; G.drip = 0;
+    P.innerHTML = `<h3>Pull the shot</h3>${head}<p>Aim for <b>36 g</b> in the cup in <b>${B.shot - B.win}–${B.shot + B.win} s</b>. Hold the button or Space, or tap once to start and again to stop. It drips a little after you stop.</p><div class="readouts"><div>Shot clock<b id="rt">0.0 s</b></div><div>Yield<b id="ry">0.0 g</b></div></div><button class="btn hold" id="hold">Hold to pull</button><div class="row"><button class="btn ghost" id="back">← Regrind</button><button class="btn ghost" id="dump">Dump</button><button class="btn" id="go" disabled>${G.level === 2 ? 'Steam milk ▶' : 'Serve ☕'}</button></div>`;
+    $('#back').onclick = () => { if (G.pulling) return; G.si--; renderStep(); };
+    $('#dump').onclick = () => { if (!G.pulling) renderStep(); };
+  } else if (s === 'steam') {
+    P.innerHTML = `<h3>Texture the milk</h3>${head}<p>Tip near the surface stretches in air (do it while the milk is cold). Go deeper to roll and heat. Target: <b>about 60 °C</b> and silky microfoam (25–40% foam).</p><div class="slider"><label for="rng">Wand depth <output id="gv"></output></label><input type="range" id="rng" min="0" max="100" value="${G.m.depth}"><div class="ends"><span>Surface (stretch)</span><span>Deep (roll)</span></div></div><div class="readouts"><div>Milk temp<b id="mt">4 °C</b></div><div>Foam<b id="mf">0%</b></div></div><button class="btn hold" id="hold">Hold to steam</button><button class="btn" id="go" disabled>Pour &amp; serve ☕</button>`;
+    $('#rng').oninput = e => { G.m.depth = +e.target.value; };
+  } else if (s === 'kettle') {
+    P.innerHTML = `<h3>Heat the kettle</h3>${head}<p class="tip">${B.tip}</p><p>Hold <b>Heat</b> to warm the water. It cools slowly when you let go. Start the bloom when the temperature is right.</p><div class="readouts"><div>Water<b id="kt">82.0 °C</b></div></div><button class="btn hold" id="hold">Hold to heat</button><button class="btn" id="go">Start bloom pour ▶</button>`;
+  } else if (s === 'bloom') {
+    P.innerHTML = `<h3>Bloom, then pour</h3>${head}<p>The grounds are blooming, letting out gas. Start the main pour when the bloom time is right for this bean.</p><div class="readouts"><div>Bloom time<b id="bt">0.0 s</b></div><div>Pour temp<b>${G.bl.temp.toFixed(1)} °C</b></div></div><button class="btn" id="go">Main pour ▶</button>`;
+  }
+  const go = $('#go');
+  if (go) go.onclick = primary;
+  const h = $('#hold');
+  if (h) bindHold(h);
+}
+function pickBean(b) {
+  if (!beanOpen(b)) return;
+  G.bean = b; G.grind = S.grind[b] || 50;
+  document.querySelectorAll('.bean-btn').forEach(x => x.setAttribute('aria-pressed', x.dataset.bean === b));
+  const i = $('#binfo'); if (i) i.innerHTML = `<b>${BEANS[b].name}: ${BEANS[b].note}.</b> ${BEANS[b].flavour}`;
+}
+function primary() {
+  const s = step(), go = $('#go');
+  if (go && go.disabled) return;
+  if (s === 'grind') S.grind[G.bean] = G.grind, save();
+  if (s === 'kettle') { G.k.on = false; G.bl.temp = G.k.temp; G.bl.started = true; G.bl.t = 0; tone(440); }
+  if (s === 'bloom') { if (G.bl.pour >= 0) return; G.bl.pour = 0; go.disabled = true; go.textContent = 'Pouring…'; return; }
+  next();
+}
+let holdT = 0;
+function holdStart() {
+  const s = step();
+  holdT = performance.now();
+  if (s === 'pull') { if (G.pulling) return stopPull(); if (G.pulled) return; G.pulling = true; tone(220, .1, 'triangle'); }
+  if (s === 'steam') { if (G.m.on) { G.m.on = false; return; } G.m.on = true; }
+  if (s === 'kettle') G.k.on = true;
+  const h = $('#hold'); if (h) h.classList.add('on');
+}
+function holdEnd() {
+  const s = step(), long = performance.now() - holdT > 350;
+  if (s === 'pull' && G.pulling && long) stopPull();
+  if (s === 'steam' && G.m.on && long) G.m.on = false;
+  if (s === 'kettle') G.k.on = false;
+  const h = $('#hold'); if (h && !(G.pulling || G.m.on)) h.classList.remove('on');
+}
+function stopPull() { G.pulling = false; G.pulled = true; G.drip = Math.min(2.5, flow() * .6); const h = $('#hold'); if (h) { h.classList.remove('on'); h.textContent = 'Shot done'; h.disabled = true; } }
+function bindHold(el) {
+  el.addEventListener('pointerdown', e => { e.preventDefault(); el.setPointerCapture && el.setPointerCapture(e.pointerId); holdStart(); });
+  ['pointerup', 'pointercancel'].forEach(t => el.addEventListener(t, holdEnd));
+  el.addEventListener('keydown', e => { if (e.key === 'Enter') e.preventDefault(); });
+}
+
+// simulation
+function tick(dt) {
+  if (!G || $('#game').classList.contains('hidden')) return;
+  const s = step(), ds = dt * speed(), B = BEANS[G.bean];
+  if (s === 'pull') {
+    if (G.pulling) { G.t += ds; G.y += flow() * clamp(G.t / 5) * ds; if (G.t > 60) stopPull(); }
+    else if (G.drip > 0) { const d = Math.min(G.drip, ds * 1.5); G.y += d; G.drip -= d; }
+    const rt = $('#rt'); if (rt) { rt.textContent = G.t.toFixed(1) + ' s'; $('#ry').textContent = G.y.toFixed(1) + ' g'; $('#go').disabled = !(G.pulled && G.drip <= 0); }
+  } else if (s === 'steam') {
+    const m = G.m;
+    if (m.on) {
+      m.temp += 2 * ds;
+      if (m.depth < 40) m.foam += (40 - m.depth) / 40 * 3 * (m.temp < 40 ? 1 : .3) * ds;
+      if (m.depth < 12) m.bub += (12 - m.depth) / 12 * 4 * ds;
+      if (m.depth > 60) m.bub = Math.max(0, m.bub - 3 * ds);
+      if (m.temp >= 85) { m.on = false; toast('Scalded! Milk hit 85 °C'); $('#hold').classList.remove('on'); }
+    }
+    const mt = $('#mt'); if (mt) { mt.textContent = m.temp.toFixed(0) + ' °C'; $('#mf').textContent = m.foam.toFixed(0) + '%'; $('#gv').textContent = m.depth < 35 ? 'stretching' : m.depth > 60 ? 'rolling' : 'mid'; $('#go').disabled = m.temp < 20 || m.on; }
+  } else if (s === 'kettle') {
+    G.k.temp = clamp(G.k.temp + (G.k.on ? 1.5 : -.15) * ds, 60, 100);
+    const kt = $('#kt'); if (kt) kt.textContent = G.k.temp.toFixed(1) + ' °C';
+  } else if (s === 'bloom') {
+    if (G.bl.pour < 0) { G.bl.t += ds; if (G.bl.t > 120) primary(); }
+    else { G.bl.pour += dt / 2.2; if (G.bl.pour >= 1) { G.bl.pour = 1; next(); return; } }
+    const bt = $('#bt'); if (bt) bt.textContent = G.bl.t.toFixed(1) + ' s';
+  }
+  $('#scene').innerHTML = scene();
+}
+
+function scene() {
+  const s = step(), B = BEANS[G.bean];
+  let o = BG;
+  if (s === 'bean') {
+    ORDER.forEach((b, i) => { const sel = b === G.bean; o += `<g data-bean="${b}" style="cursor:pointer">${bagSvg(b, 70 + i * 87, sel ? 170 : 185, sel ? 1.25 : 1, !beanOpen(b))}</g>`; });
+    o += `<text x="200" y="40" text-anchor="middle" font-size="20" font-weight="800" fill="#3b2416">${B.name}</text><text x="200" y="62" text-anchor="middle" font-size="13" fill="#7a6352">${B.note}</text>`;
+  } else if (s === 'grind') {
+    const r = .8 + G.grind / 100 * 2.6, a = -135 + G.grind * 2.7, rr = rng(7);
+    o += `<path d="M160 30L240 30L225 95L175 95Z" fill="#dfeef5" stroke="#5a3420" stroke-width="3" opacity=".9"/>`;
+    for (let i = 0; i < 14; i++) o += beanSvg(180 + rr() * 40, 55 + rr() * 35, 5, rr() * 180, B.color);
+    o += `<rect x="168" y="95" width="64" height="105" rx="8" fill="#3b2416"/><circle cx="200" cy="140" r="24" fill="#e9d2b0" stroke="#c98a4b" stroke-width="3"/><line x1="200" y1="140" x2="200" y2="120" stroke="#3b2416" stroke-width="4" stroke-linecap="round" transform="rotate(${a} 200 140)"/><text x="160" y="182" font-size="10" fill="#f6ead8">FINE</text><text x="210" y="182" font-size="10" fill="#f6ead8">COARSE</text><rect x="150" y="214" width="100" height="14" rx="7" fill="#555"/><rect x="250" y="217" width="60" height="8" rx="4" fill="#222"/>`;
+    for (let i = 0; i < 40; i++) o += `<circle cx="${165 + rr() * 70}" cy="${204 + rr() * 10}" r="${r}" fill="#4a2a18"/>`;
+    o += `<text x="200" y="22" text-anchor="middle" font-size="14" font-weight="800" fill="#3b2416">Grind ${G.grind}</text>`;
+  } else if (s === 'pull') {
+    const fill = clamp(G.y / 45), on = G.pulling || G.drip > 0;
+    o += `<rect x="90" y="20" width="220" height="110" rx="14" fill="#c9ced3" stroke="#7c848b" stroke-width="3"/><rect x="150" y="38" width="100" height="34" rx="6" fill="#1d2b22"/><text x="200" y="61" text-anchor="middle" font-size="18" fill="#7cf29a" font-family="monospace">${G.t.toFixed(1)}s</text><rect x="175" y="130" width="50" height="16" fill="#7c848b"/><rect x="225" y="134" width="70" height="9" rx="4" fill="#222"/>`;
+    if (on) o += `<rect x="194" y="146" width="${G.pulling ? 4 : 2}" height="${208 - 146 - fill * 40}" fill="#8a4a1c"/><rect x="204" y="146" width="${G.pulling ? 4 : 2}" height="${208 - 146 - fill * 40}" fill="#8a4a1c"/>`;
+    o += `<path d="M170 170L230 170L224 222L176 222Z" fill="#fffaf2" stroke="#3b2416" stroke-width="3"/><path d="M230 182h8a10 10 0 0 1 0 20h-10" stroke="#3b2416" stroke-width="4" fill="none"/>`;
+    if (G.y > 0) { const top = 220 - fill * 48; o += `<path d="M${177 - (220 - top) * .12} ${top}L${223 + (220 - top) * .12} ${top}L223 220L177 220Z" fill="#4a2410"/><rect x="${177 - (220 - top) * .12}" y="${top}" width="${46 + (220 - top) * .24}" height="4" fill="#c98a4b"/>`; }
+    o += `<rect x="150" y="222" width="100" height="10" rx="3" fill="#333"/><rect x="170" y="238" width="60" height="18" rx="4" fill="#1d2b22"/><text x="200" y="252" text-anchor="middle" font-size="13" fill="#7cf29a" font-family="monospace">${G.y.toFixed(1)}g</text>`;
+  } else if (s === 'steam') {
+    const m = G.m, surf = 170 - Math.min(m.foam, 60) * .7, tipY = surf + 4 + m.depth * .5;
+    o += `<path d="M150 110L250 110L240 228L160 228Z" fill="#d9dee2" stroke="#7c848b" stroke-width="3"/><path d="M${153 + (surf - 110) * .085} ${surf}L${247 - (surf - 110) * .085} ${surf}L240 226L160 226Z" fill="#fffaf2"/><rect x="${153 + (surf - 110) * .085}" y="${surf}" width="${94 - (surf - 110) * .17}" height="${Math.min(m.foam, 60) * .5 + 2}" fill="#f3e6d2"/>`;
+    for (let i = 0; i < Math.min(12, m.bub / 3); i++) o += `<circle cx="${170 + (i * 37) % 60}" cy="${surf + 3}" r="4" fill="none" stroke="#c8b9a5"/>`;
+    o += `<line x1="320" y1="10" x2="210" y2="${tipY}" stroke="#7c848b" stroke-width="6" stroke-linecap="round"/>`;
+    if (m.on) for (let i = 0; i < 4; i++) o += `<circle cx="${205 + Math.random() * 10}" cy="${tipY - 2 - Math.random() * 6}" r="${2 + Math.random() * 3}" fill="#fff"/>`;
+    const th = clamp(m.temp / 90);
+    o += `<rect x="300" y="80" width="22" height="140" rx="11" fill="#fff" stroke="#3b2416" stroke-width="2"/><rect x="302" y="${80 + 140 * (1 - 65 / 90)}" width="18" height="${140 * 10 / 90}" fill="#cfe6c3"/><rect x="305" y="${80 + 140 * (1 - th)}" width="12" height="${140 * th}" rx="6" fill="#d9673b"/><text x="311" y="240" text-anchor="middle" font-size="12" font-weight="800" fill="#3b2416">${m.temp.toFixed(0)}°</text>`;
+  } else if (s === 'kettle' || s === 'bloom') {
+    const t = s === 'kettle' ? G.k.temp : G.bl.temp, pouring = s === 'bloom';
+    o += `<g transform="${pouring ? 'translate(120 40) rotate(25)' : 'translate(60 120)'}"><rect x="0" y="20" width="90" height="90" rx="18" fill="#3b3f44"/><path d="M90 40C120 40 125 10 145 0" stroke="#3b3f44" stroke-width="7" fill="none"/><rect x="25" y="8" width="40" height="14" rx="5" fill="#2a2d31"/><path d="M0 40C-25 45 -25 85 0 90" stroke="#2a2d31" stroke-width="7" fill="none"/><circle cx="45" cy="65" r="20" fill="#f6ead8"/><text x="45" y="70" text-anchor="middle" font-size="13" font-weight="800" fill="#3b2416">${t.toFixed(0)}°</text></g>`;
+    if (!pouring && (G.k.on || t > 95)) for (let i = 0; i < 3; i++) o += `<path d="M${200 + i * 8} ${115 - i * 4}c-6 -8 6 -12 0 -20" stroke="#fff" stroke-width="3" fill="none"/>`;
+    o += `<path d="M250 110L350 110L305 168L295 168Z" fill="#fffaf2" stroke="#7c848b" stroke-width="3"/><path d="M262 125L338 125L304 165L296 165Z" fill="#5a3420"/>`;
+    if (pouring) {
+      const dome = G.bl.pour < 0 ? Math.min(G.bl.t, 30) / 30 * 10 : 10 * (1 - G.bl.pour);
+      o += `<ellipse cx="300" cy="125" rx="36" ry="${2 + dome}" fill="#7a4a2a"/>`;
+      if (G.bl.t < 6 || G.bl.pour >= 0) o += `<path d="M266 42Q285 60 300 120" stroke="#cfe3ee" stroke-width="3" fill="none"/>`;
+      o += `<rect x="270" y="20" width="110" height="34" rx="8" fill="#1d2b22"/><text x="325" y="43" text-anchor="middle" font-size="18" fill="#7cf29a" font-family="monospace">${G.bl.t.toFixed(1)}s</text>`;
+    }
+    const lvl = s === 'bloom' && G.bl.pour > 0 ? G.bl.pour : 0;
+    o += `<path d="M262 172L338 172L345 226L255 226Z" fill="#dfeef5" stroke="#7c848b" stroke-width="3" opacity=".9"/><rect x="258" y="${226 - lvl * 40}" width="84" height="${lvl * 40}" fill="#6b3a1a" opacity=".85"/>`;
+  }
+  return o;
+}
+
+function serve() {
+  const B = BEANS[G.bean], parts = [], tips = []; let score = 0;
+  const lin = (v, tgt, tol, fall) => clamp(1 - Math.max(0, Math.abs(v - tgt) - tol) / fall);
+  if (G.level <= 2) {
+    const ts = lin(G.t, B.shot, B.win, 8), ys = lin(G.y, 36, 1.5, 10);
+    const esp = 100 * (.55 * ts + .45 * ys);
+    parts.push({ l:'Shot time', v:ts, d:`${G.t.toFixed(1)} s (target ${B.shot - B.win}–${B.shot + B.win} s)` }, { l:'Yield', v:ys, d:`${G.y.toFixed(1)} g (target 36 g)` });
+    if (G.t < B.shot - B.win) tips.push('The shot ran fast, so it tastes sour and thin. Grind finer.');
+    else if (G.t > B.shot + B.win) tips.push('The shot ran slow, so it tastes bitter. Grind coarser.');
+    if (G.y < 34.5) tips.push('You stopped early. Let it run a little longer (it keeps dripping briefly after you stop).');
+    else if (G.y > 37.5) tips.push('It ran long. Stop a touch sooner.');
+    score = esp;
+    if (G.level === 2) {
+      const m = G.m, tS = lin(m.temp, 61.5, 3.5, 12), fS = lin(m.foam, 32, 7, 20), bS = 1 - clamp(m.bub / 30);
+      const milk = 100 * (.45 * tS + .45 * fS + .1 * bS);
+      parts.push({ l:'Milk temperature', v:tS, d:`${m.temp.toFixed(0)} °C (target 58–65 °C)` }, { l:'Microfoam', v:fS, d:`${m.foam.toFixed(0)}% foam (target 25–39%)` }, { l:'Silky (no big bubbles)', v:bS, d:bS > .8 ? 'Smooth' : 'Too bubbly: keep the tip a little deeper' });
+      if (m.temp < 58) tips.push('The milk is a bit cool. Steam a little longer.'); else if (m.temp > 65) tips.push('The milk is too hot. Stop around 60 °C.');
+      if (m.foam < 25) tips.push('Not enough foam. Keep the wand near the surface early, while the milk is cold.'); else if (m.foam > 39) tips.push('Too much foam. Go deeper sooner to roll the milk.');
+      score = .5 * esp + .5 * milk;
+    }
+  } else {
+    const tS = lin(G.bl.temp, B.pTemp, B.pTol, 6), bS = lin(G.bl.t, B.bloom, B.bTol, 15);
+    parts.push({ l:'Water temperature', v:tS, d:`${G.bl.temp.toFixed(1)} °C (target ${B.pTemp - B.pTol}–${B.pTemp + B.pTol} °C)` }, { l:'Bloom time', v:bS, d:`${G.bl.t.toFixed(1)} s (target ${B.bloom - B.bTol}–${B.bloom + B.bTol} s)` });
+    if (G.bl.temp < B.pTemp - B.pTol) tips.push(`The water was too cool for ${B.name}. Heat it more.`); else if (G.bl.temp > B.pTemp + B.pTol) tips.push(`The water was too hot for ${B.name}. Let it cool a little.`);
+    if (G.bl.t < B.bloom - B.bTol) tips.push('You started the main pour too soon. Bloom longer.'); else if (G.bl.t > B.bloom + B.bTol) tips.push('You bloomed for too long. Pour sooner.');
+    score = 50 * tS + 50 * bS;
+  }
+  score = Math.round(score);
+  if (!tips.length) tips.push(score >= 90 ? 'Beautiful cup. You nailed it!' : 'Nice cup. Small tweaks will get you to three stars.');
+  const beforeL = [2, 3].filter(levelOpen), beforeB = ORDER.filter(beanOpen);
+  if (score > S.best[G.level]) S.best[G.level] = score;
+  S.served++;
+  const unlocks = [2, 3].filter(l => levelOpen(l) && !beforeL.includes(l)).map(l => `Level ${l}: ${LEVELS[l].name} unlocked!`)
+    .concat(ORDER.filter(b => beanOpen(b) && !beforeB.includes(b)).map(b => `New bean: ${BEANS[b].name} (${BEANS[b].note}) unlocked!`));
+  let pts = 0, fast = false;
+  if (G.cust) {
+    const secs = (performance.now() - G.start) / 1000; fast = secs <= LEVELS[G.level].par;
+    pts = Math.round(score * B.bonus * (fast ? 1.2 : 1));
+    const R = S.run; R.idx++; R.score += pts; R.quality += score; if (stars(score) === 3) R.three++;
+  }
+  save(); ding(); if (unlocks.length) setTimeout(() => tone(1568, .4), 300);
+  const lvlNext = G.level < 3 && levelOpen(G.level + 1);
+  const done = G.cust && S.run.idx >= 100;
+  $('#resultCard').innerHTML = `<svg class="drink" viewBox="0 0 200 140">${drinkSvg(G.level, B)}</svg><h2>${G.cust ? G.cust.name + "'s " : ''}${LEVELS[G.level].name} · ${B.name}</h2><div class="bigscore">${score}<small>/100</small></div><div class="stars">${starHtml(score)}</div>${G.cust ? `<div class="points">+${pts} points${B.bonus > 1 ? ` (${B.name} ×${B.bonus})` : ''}${fast ? ' · fast service ×1.2' : ''}</div>` : ''}${unlocks.map(u => `<div class="unlock">🎉 ${u}</div>`).join('')}<ul class="parts">${parts.map(p => `<li><div class="lab"><span>${p.l}</span><span>${Math.round(p.v * 100)}%</span></div><div class="bar"><i style="width:${p.v * 100}%"></i></div><div class="det">${p.d}</div></li>`).join('')}</ul><ul class="tips">${tips.map(t => `<li>${t}</li>`).join('')}</ul><div class="row" style="margin-top:14px">${G.cust ? `<button class="btn ghost" id="rMenu">Save &amp; quit</button><button class="btn" id="rGo">${done ? 'See the day’s summary ▶' : 'Next customer ▶'}</button>` : `<button class="btn ghost" id="rMenu">Menu</button><button class="btn ${lvlNext ? 'ghost' : ''}" id="rGo">Brew again ↺</button>${lvlNext ? `<button class="btn" id="rNext">Level ${G.level + 1} ▶</button>` : ''}`}</div>`;
+  const lv = G.level, bn = G.bean;
+  show('result');
+  $('#rMenu').onclick = menu;
+  $('#rGo').onclick = G.cust ? (done ? finishDay : nextCustomer) : () => newBrew(lv, bn);
+  if ($('#rNext')) $('#rNext').onclick = () => newBrew(lv + 1, bn);
+  ($('#rNext') || $('#rGo')).focus();
+}
+function drinkSvg(level, B) {
+  let o = '<ellipse cx="100" cy="122" rx="80" ry="12" fill="#e2c39d"/>';
+  if (level === 3) return o + `<path d="M60 40L140 40L150 120L50 120Z" fill="#dfeef5" stroke="#7c848b" stroke-width="3"/><rect x="53" y="70" width="94" height="48" fill="#6b3a1a" opacity=".85"/><text x="100" y="30" text-anchor="middle" font-size="12" font-weight="800" fill="${B.accent}">${B.name}</text>`;
+  const w = level === 2 ? 60 : 36;
+  return o + `<path d="M${100 - w} 50h${w * 2}v20a${w} ${w * .9} 0 0 1 -${w * 2} 0z" fill="#fffaf2" stroke="#3b2416" stroke-width="3"/><ellipse cx="100" cy="51" rx="${w - 3}" ry="7" fill="${level === 2 ? '#f6ead8' : '#c98a4b'}"/>${level === 2 ? '<path d="M88 50c3-7 12-7 12 0 0-7 9-7 12 0-4 5-8 7-12 10-4-3-8-5-12-10z" fill="#a0612f"/>' : ''}<path d="M${100 + w} 58h8a9 9 0 0 1 0 18h-8" stroke="#3b2416" stroke-width="4" fill="none"/>`;
+}
+
+// daily
+const today = () => new Date().toISOString().slice(0, 10);
+function customers(R) {
+  const r = rng(hash('pourright:' + R.date)), list = [];
+  for (let i = 0; i < 100; i++) { const n = NAMES[Math.floor(r() * NAMES.length)], lr = r(), br = r(), c = r(); list.push({ name:n, level:R.levels[Math.floor(lr * R.levels.length)], bean:R.beans[Math.floor(br * R.beans.length)], hue:Math.floor(c * 360) }); }
+  return list;
+}
+function startDaily(resume) {
+  if (!resume || !S.run || S.run.date !== today()) S.run = { date:today(), idx:0, score:0, quality:0, three:0, levels:[1, 2, 3].filter(levelOpen), beans:ORDER.filter(beanOpen) };
+  save(); nextCustomer();
+}
+function nextCustomer() { const R = S.run, c = customers(R)[R.idx]; newBrew(c.level, c.bean, c); }
+function renderDailyBar() {
+  const bar = $('#dailyBar');
+  if (!G.cust) { bar.classList.add('hidden'); return; }
+  const R = S.run, list = customers(R).slice(R.idx, R.idx + 7);
+  let q = '';
+  list.forEach((c, i) => { const x = 30 + i * 52; q += `<g opacity="${i ? .75 : 1}"><circle cx="${x}" cy="22" r="11" fill="hsl(${c.hue},45%,72%)"/><rect x="${x - 13}" y="34" width="26" height="22" rx="9" fill="hsl(${(c.hue + 140) % 360},45%,50%)"/><circle cx="${x}" cy="62" r="5" fill="${BEANS[c.bean].accent}"/></g>`; });
+  bar.innerHTML = `<div class="stats"><span>Customer <b>${R.idx + 1}/100</b></span><span>Score <b>${R.score}</b></span><span>Today's best <b>${S.daily[R.date] || 0}</b></span></div><svg viewBox="0 0 380 72" aria-hidden="true">${q}</svg><div class="order">${G.cust.name} wants a <b>${LEVELS[G.level].name}</b> with <span class="dot" style="background:${BEANS[G.bean].accent}"></span><b>${BEANS[G.bean].name}</b> beans</div>`;
+  bar.classList.remove('hidden');
+}
+function finishDay() {
+  const R = S.run, prev = S.daily[R.date] || 0, best = Math.max(prev, R.score);
+  S.daily[R.date] = best; S.run = null; save();
+  const text = `PourRight Daily ${R.date}: ${R.score} points, 100 customers served ☕`;
+  $('#summaryCard').innerHTML = `<h2>Day complete! ${R.date}</h2><p>You served all 100 customers.</p><div class="bigscore">${R.score}<small> pts</small></div>${R.score > prev ? '<div class="unlock">🏆 New best for today!</div>' : `<p>Today's best: <b>${best}</b></p>`}<ul class="parts"><li><div class="lab"><span>Average cup quality</span><span>${Math.round(R.quality / 100)}/100</span></div></li><li><div class="lab"><span>Three-star cups</span><span>${R.three}</span></div></li></ul><p>A new challenge starts at midnight UTC, and it’s the same day for everyone.</p><div class="row"><button class="btn ghost" id="copy">Copy result</button><button class="btn" id="sMenu">Menu</button></div>`;
+  show('summary');
+  $('#sMenu').onclick = menu;
+  $('#copy').onclick = () => { navigator.clipboard && navigator.clipboard.writeText(text).then(() => toast('Copied!'), () => toast(text)); };
+}
+
+// menu
+function menu() {
+  G = null;
+  $('#levelCards').innerHTML = [1, 2, 3].map(l => { const o = levelOpen(l); return `<button class="card lvl ${o ? '' : 'locked'}" data-lvl="${l}" ${o ? '' : 'aria-disabled="true"'}><span class="pill ${o ? 'ok' : ''}">Level ${l}</span><h3>${LEVELS[l].name}</h3><p>${LEVELS[l].desc}</p><div class="meta"><span>${o ? 'Best: ' + S.best[l] : '🔒 Score 70+ on Level ' + (l - 1)}</span><span class="stars" style="font-size:1.1rem;margin:0">${o ? starHtml(S.best[l]) : ''}</span></div></button>`; }).join('');
+  $('#levelCards').querySelectorAll('.lvl').forEach(b => b.onclick = () => { const l = +b.dataset.lvl; if (levelOpen(l)) newBrew(l, 'colombia'); else toast('Score 70+ on Level ' + (l - 1) + ' to unlock'); });
+  $('#beanCards').innerHTML = ORDER.map(b => { const B = BEANS[b], o = beanOpen(b); return `<div class="card beancard ${o ? '' : 'locked'}"><svg width="56" height="70" viewBox="-30 -36 60 72">${bagSvg(b, 0, 0, 1, !o)}</svg><div><h3>${B.name}</h3><p><b>${B.note}.</b> ${B.flavour}</p><p style="margin-top:4px"><span class="pill ${o ? 'ok' : ''}">${o ? (B.unlock ? 'Unlocked' : 'Starter bean') : '🔒 ' + B.unlock.text}</span></p></div></div>`; }).join('');
+  const R = S.run && S.run.date === today() ? S.run : null;
+  $('#dailyCard').innerHTML = `<div><h3>Serve 100 customers</h3><p>Today (${today()} UTC) brings the same queue of 100 orders for everyone, drawn from the drinks and beans you’ve unlocked. Fast service scores ×1.2 and rarer beans earn bonus points.</p><p style="margin-top:6px"><b>Today’s best: ${S.daily[today()] || 0}</b>${R ? ` · In progress: ${R.idx}/100, ${R.score} pts` : ''}</p></div><div class="row">${R ? '<button class="btn sage" id="dResume">Resume ▶</button>' : ''}<button class="btn ${R ? 'ghost' : 'sage'}" id="dStart">${R ? 'Restart day' : 'Start the day ▶'}</button></div>`;
+  $('#dStart').onclick = () => startDaily(false);
+  if ($('#dResume')) $('#dResume').onclick = () => startDaily(true);
+  show('menu');
+}
+$('#startBtn').onclick = () => newBrew(1, 'colombia');
+$('#dailyBtn').onclick = () => startDaily(!!(S.run && S.run.date === today()));
+$('#brand').onclick = menu;
+$('#brand').onkeydown = e => { if (e.key === 'Enter') menu(); };
+const muteBtn = $('#mute');
+const setMute = () => { muteBtn.innerHTML = S.mute ? '&#128263;' : '&#128266;'; };
+muteBtn.onclick = () => { S.mute = !S.mute; save(); setMute(); };
+setMute();
+$('#scene').addEventListener('click', e => { const g = e.target.closest('[data-bean]'); if (g && step() === 'bean') pickBean(g.dataset.bean); });
+
+// keyboard
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') { if (G && G.cust) save(); menu(); return; }
+  if ($('#game').classList.contains('hidden') || !G) return;
+  const s = step(), tag = document.activeElement && document.activeElement.tagName;
+  if (e.key === ' ' || e.key === 'Enter') {
+    if (e.key === 'Enter' && (tag === 'BUTTON' || tag === 'A') && document.activeElement.id !== 'hold') return;
+    e.preventDefault(); if (e.repeat) return;
+    if ($('#hold') && !$('#hold').disabled && (e.key === ' ' || document.activeElement.id === 'hold')) holdStart(); else primary();
+  } else if ((e.key === 'ArrowLeft' || e.key === 'ArrowRight') && tag !== 'INPUT') {
+    const r = $('#rng'); if (r) { e.preventDefault(); r.value = +r.value + (e.key === 'ArrowRight' ? 2 : -2); r.dispatchEvent(new Event('input')); }
+  } else if (s === 'bean' && /^[1-4]$/.test(e.key)) pickBean(ORDER[+e.key - 1]);
+});
+document.addEventListener('keyup', e => { if (e.key === ' ' && G && !$('#game').classList.contains('hidden')) { e.preventDefault(); holdEnd(); } });
+
+let last = performance.now();
+function loop(t) { const dt = Math.min(.1, (t - last) / 1000); last = t; tick(dt); requestAnimationFrame(loop); }
+requestAnimationFrame(loop);
+window.PourRight = { get state() { return G; }, get save() { return S; }, tick, holdStart, holdEnd, primary, pickBean, newBrew, startDaily, menu, customers };
+menu();
+})();
+</script>
+</body>
+</html>
