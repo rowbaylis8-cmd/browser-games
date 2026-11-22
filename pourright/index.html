@@ -234,6 +234,7 @@ function newBrew(level, bean, cust) {
   G = { level, bean, cust, steps, si:0, grind:S.grind[bean] || 50, t:0, y:0, pulling:false, pulled:false, drip:0,
     m:{ temp:4, foam:0, bub:0, depth:50, on:false }, k:{ temp:82, on:false }, bl:{ started:false, t:0, temp:0, pour:-1 }, start:performance.now() };
   show('game'); renderDailyBar(); renderStep();
+  if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
 }
 const step = () => G && G.steps[G.si];
 const speed = () => G.cust ? 5 : 3;
