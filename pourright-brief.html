@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PourRight — Developer Brief</title>
+<meta name="theme-color" content="#8f7bff">
+<link rel="icon" href="arcade-icon.svg" type="image/svg+xml">
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; min-height: 100vh; font-family: "Trebuchet MS", system-ui, Arial, sans-serif; color: #1d1b3a;
+         background: linear-gradient(160deg, #ffe66d 0%, #ff9f68 35%, #ff6fb5 70%, #8f7bff 100%); background-attachment: fixed; }
+  header { text-align: center; padding: 36px 16px 10px; }
+  h1.site { margin: 0; font-size: clamp(1.6rem, 4vw, 2.4rem); color: #fff; text-shadow: 0 4px 0 #5b2a86, 0 8px 18px rgba(0,0,0,.25); letter-spacing: 1px; }
+  .nav { margin: 12px 0 0; }
+  .nav a { color: #fff; font-weight: 800; text-decoration: none; text-shadow: 0 2px 4px rgba(0,0,0,.3); }
+  .nav a:hover { text-decoration: underline; }
+  article { max-width: 860px; margin: 20px auto 40px; padding: 28px 28px 36px; background: #fff; border-radius: 22px;
+            box-shadow: 0 10px 0 rgba(91,42,134,.35), 0 18px 30px rgba(0,0,0,.18); }
+  article h1 { margin: 0 0 16px; font-size: 2rem; }
+  article h2 { margin: 28px 0 10px; font-size: 1.45rem; }
+  article h3 { margin: 22px 0 8px; font-size: 1.15rem; }
+  article p, article li { line-height: 1.5; color: #1d1b3a; }
+  article p { margin: 0 0 12px; }
+  article ul, article ol { margin: 0 0 14px; padding-left: 1.3em; }
+  article blockquote { margin: 0 0 16px; padding: 10px 16px; background: #f6f3ff; border-left: 4px solid #8f7bff; color: #4a4868; }
+  article table { width: 100%; border-collapse: collapse; margin: 0 0 16px; font-size: .95rem; }
+  article th, article td { border: 1px solid #ddd9f0; padding: 8px 10px; text-align: left; vertical-align: top; }
+  article th { background: #f6f3ff; }
+  article strong { font-weight: 800; }
+  .downloads { margin: 0 0 18px; color: #4a4868; }
+  .downloads a { color: #5b2a86; font-weight: 800; }
+  footer { text-align: center; color: #fff; padding: 0 16px 30px; text-shadow: 0 1px 3px rgba(0,0,0,.35); }
+  footer a { color: #fff; font-weight: 800; }
+</style>
+</head>
+<body>
+<header>
+  <p class="nav"><a href="index.html">← Browser Games Arcade</a></p>
+  <h1 class="site">PourRight — Developer Brief</h1>
+</header>
+<article>
+  <p class="downloads">Download: <a href="pourright/PourRight-Developer-Brief.md">PourRight-Developer-Brief.md</a></p>
+<h1>PourRight — Developer Brief</h1>
+<p><strong>One-line summary:</strong> PourRight is a full barista simulation, bean to cup, played in the browser and built to be found through web search.</p>
+<blockquote>
+<p><strong>How to read this brief:</strong> Sections marked <strong>Client decision</strong> are the client's fixed spec. Anything marked <strong>Suggested</strong> is an implementation idea for the developer to confirm or change, not a client requirement. Open questions are collected at the end.</p>
+</blockquote>
+<h2>1. Overview and concept</h2>
+<p><strong>Client decision</strong></p>
+<ul>
+<li><strong>Name:</strong> PourRight.</li>
+<li><strong>Concept:</strong> A full barista simulation playable in the browser, bean to cup.</li>
+<li><strong>What the player does:</strong> picks a bean, grinds it, steams milk, and does pour-overs.</li>
+<li><strong>Format:</strong> A web app, not an app store listing.</li>
+</ul>
+<h2>2. Core gameplay loop</h2>
+<p><strong>Suggested</strong> (derived from the client's concept; confirm with the client):</p>
+<ol>
+<li><strong>Choose</strong> — pick a bean (from the origins unlocked so far).</li>
+<li><strong>Prepare</strong> — grind the bean and set up the drink for the current level.</li>
+<li><strong>Brew</strong> — pull the shot, texture the milk, or run the pour-over, depending on the level.</li>
+<li><strong>Serve</strong> — present the drink and receive a score.</li>
+<li><strong>Progress</strong> — a good score unlocks the next level or a new bean origin; replay to improve.</li>
+</ol>
+<h2>3. Levels (launch set)</h2>
+<p>The client has specified three launch levels. Goals and player actions below come from the spec; scoring details and unlock conditions are <strong>Suggested</strong>.</p>
+<h3>Level 1 — Espresso</h3>
+<table>
+<thead>
+<tr>
+<th></th>
+<th></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Goal (client)</strong></td>
+<td>Espresso only. Dial in the grind, pull the shot, serve.</td>
+</tr>
+<tr>
+<td><strong>Player actions (client)</strong></td>
+<td>Adjust grind; pull the shot; serve.</td>
+</tr>
+<tr>
+<td><strong>Scoring inputs (suggested)</strong></td>
+<td>Grind setting versus a target range; shot time and/or yield; optional penalty for over- or under-extraction.</td>
+</tr>
+<tr>
+<td><strong>Unlock condition (suggested)</strong></td>
+<td>Available from the start.</td>
+</tr>
+</tbody>
+</table>
+<h3>Level 2 — Latte (milk texturing)</h3>
+<table>
+<thead>
+<tr>
+<th></th>
+<th></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Goal (client)</strong></td>
+<td>Adds milk texturing for a latte.</td>
+</tr>
+<tr>
+<td><strong>Player actions (client)</strong></td>
+<td>Everything in Level 1, plus steaming/texturing milk.</td>
+</tr>
+<tr>
+<td><strong>Scoring inputs (suggested)</strong></td>
+<td>Level 1 espresso score, plus milk temperature and texture (foam amount) against target ranges.</td>
+</tr>
+<tr>
+<td><strong>Unlock condition (suggested)</strong></td>
+<td>Reach a minimum score on Level 1.</td>
+</tr>
+</tbody>
+</table>
+<h3>Level 3 — Pour-over</h3>
+<table>
+<thead>
+<tr>
+<th></th>
+<th></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Goal (client)</strong></td>
+<td>Pour-over, where water temperature and bloom time decide the score.</td>
+</tr>
+<tr>
+<td><strong>Player actions (client)</strong></td>
+<td>Set water temperature; bloom; complete the pour.</td>
+</tr>
+<tr>
+<td><strong>Scoring inputs (client)</strong></td>
+<td>Water temperature and bloom time.</td>
+</tr>
+<tr>
+<td><strong>Scoring detail (suggested)</strong></td>
+<td>Score each input by distance from a target value or range, with targets possibly varying by bean origin.</td>
+</tr>
+<tr>
+<td><strong>Unlock condition (suggested)</strong></td>
+<td>Reach a minimum score on Level 2.</td>
+</tr>
+</tbody>
+</table>
+<h2>4. Bean origins</h2>
+<p><strong>Client decision:</strong> four unlockable bean origins, by country, with the flavour notes below. Gameplay effects and unlock rules are <strong>Suggested</strong>.</p>
+<table>
+<thead>
+<tr>
+<th>Origin</th>
+<th>Flavour profile (client)</th>
+<th>Gameplay effect (suggested)</th>
+<th>Unlock (suggested)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Ethiopia</td>
+<td>Floral notes</td>
+<td>Rewards lighter, more precise extraction; narrower target window</td>
+<td>Earned by progression (e.g. clearing a level)</td>
+</tr>
+<tr>
+<td>Colombia</td>
+<td>Balanced body</td>
+<td>Forgiving, wide target window; good starter bean</td>
+<td>Possibly the default/first bean (to confirm, as all four are described as unlockable)</td>
+</tr>
+<tr>
+<td>Jamaica</td>
+<td>Blue Mountain rarity</td>
+<td>Rare/premium: harder to unlock, higher score potential</td>
+<td>Late unlock (e.g. high score on Level 3)</td>
+</tr>
+<tr>
+<td>Kenya</td>
+<td>Bright and juicy single-origin</td>
+<td>Rewards accurate pour-over temperature and bloom</td>
+<td>Earned by progression</td>
+</tr>
+</tbody>
+</table>
+<h2>5. Companion kettle timer web app</h2>
+<p><strong>Client decision:</strong> A companion web app that times the player's real kettle at home.</p>
+<p><strong>Suggested implementation notes:</strong></p>
+<ul>
+<li>Build as a separate, simple page or route (e.g. <code>/kettle</code>) sharing the same domain and branding.</li>
+<li>Core function: a start/stop timer the player runs alongside their real kettle, with optional bloom and pour-stage prompts that echo Level 3.</li>
+<li>Keep it usable on a phone in the kitchen: large controls, screen kept awake while timing (where the browser supports it), optional sound cue.</li>
+<li>No hardware connection is assumed; "times the kettle" is interpreted as a manual timer. Confirm with the client (see Open questions).</li>
+</ul>
+<h2>6. Branding</h2>
+<p><strong>Client decision</strong></p>
+<ul>
+<li><strong>Homepage tagline:</strong> "Every cup starts with a choice."</li>
+</ul>
+<p><strong>Suggested:</strong> Show the tagline prominently on the homepage with a single clear call to action (e.g. "Start pouring") that drops the player straight into Level 1.</p>
+<h2>7. Positioning and distribution</h2>
+<p><strong>Client decision</strong></p>
+<ul>
+<li>PourRight is a <strong>web app meant to be found through web search</strong>, not an app store listing.</li>
+</ul>
+<p><strong>Suggested implementation notes:</strong></p>
+<ul>
+<li>Treat search discoverability as a core requirement: server-rendered or static HTML with real text content, descriptive page titles and meta descriptions, and clean, readable URLs.</li>
+<li>Consider indexable supporting pages (e.g. per level, per bean origin, the kettle timer) so each can rank for relevant searches.</li>
+<li>Add social sharing metadata (Open Graph) and a sitemap.</li>
+<li>Optionally make it installable as a PWA, without any app store submission.</li>
+</ul>
+<h2>8. Build approach and MVP scope</h2>
+<p><strong>Client decision</strong></p>
+<ul>
+<li><strong>Solo-friendly build.</strong> Start with <strong>one core mechanic and one screen.</strong></li>
+</ul>
+<p><strong>Suggested MVP:</strong> Level 1 espresso (dial in the grind, pull the shot, serve) on a single screen, with a score at the end.</p>
+<p><strong>Suggested phased roadmap:</strong></p>
+<table>
+<thead>
+<tr>
+<th>Phase</th>
+<th>Scope</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>Level 1: espresso, one screen, one core mechanic (grind + shot + serve)</td>
+</tr>
+<tr>
+<td>2</td>
+<td>Level 2: milk texturing for a latte</td>
+</tr>
+<tr>
+<td>3</td>
+<td>Level 3: pour-over scored on water temperature and bloom time</td>
+</tr>
+<tr>
+<td>4</td>
+<td>Four unlockable bean origins: Ethiopia, Colombia, Jamaica, Kenya</td>
+</tr>
+<tr>
+<td>5</td>
+<td>Companion kettle timer web app</td>
+</tr>
+</tbody>
+</table>
+<p>Homepage with the tagline and basic search-engine setup should ship alongside Phase 1.</p>
+<h2>9. Suggested tech notes</h2>
+<p>All points in this section are <strong>Suggested</strong>.</p>
+<ul>
+<li><strong>Stack:</strong> Plain HTML, CSS and JavaScript (Canvas or DOM-based) is enough for the MVP. A lightweight framework (e.g. Svelte, Preact or Vue) is reasonable if state grows across levels.</li>
+<li><strong>Rendering for search:</strong> Use a static or pre-rendered homepage and content pages so search engines see real content; load the game itself after.</li>
+<li><strong>Performance:</strong> Keep initial load small and fast (compressed assets, lazy-loaded game code and audio) for both players and search ranking.</li>
+<li><strong>Responsive:</strong> Support desktop and mobile; design controls for touch and mouse from the start.</li>
+<li><strong>Progress saving:</strong> Store unlocks and scores in browser local storage for the MVP; no accounts needed initially.</li>
+<li><strong>Hosting:</strong> Any static host with HTTPS and a CDN is sufficient for the MVP.</li>
+<li><strong>Accessibility:</strong> Keyboard controls, readable contrast, and no information conveyed by colour alone.</li>
+</ul>
+<h2>10. Open questions for the client</h2>
+<ol>
+<li><strong>Scoring:</strong> What does a "good" shot, latte and pour-over look like? Should scoring be realistic (based on real barista ranges) or simplified and arcade-like?</li>
+<li><strong>Unlocks:</strong> How should levels and bean origins unlock (by score, by completion, or something else)? Is any origin available from the start?</li>
+<li><strong>Bean effects:</strong> Should origins change gameplay (difficulty, target ranges) or be flavour and cosmetic only?</li>
+<li><strong>Grinding and bean selection:</strong> The concept includes picking and grinding a bean; should bean picking appear in Level 1, or only once origins unlock?</li>
+<li><strong>Kettle timer:</strong> Is the companion app a manual timer, or is any connection to a real (smart) kettle expected?</li>
+<li><strong>Visual style and audio:</strong> Is there a preferred art style, colour palette, logo or sound direction?</li>
+<li><strong>Platforms:</strong> Is mobile play a priority at launch, or desktop first?</li>
+<li><strong>Accounts and monetization:</strong> Are player accounts, leaderboards, ads or payments planned at any stage?</li>
+<li><strong>Domain and analytics:</strong> Is a domain already chosen, and which analytics or search tools should be set up?</li>
+<li><strong>Language:</strong> English only at launch, or other languages planned?</li>
+</ol>
+</article>
+<footer><a href="index.html">← Back to the arcade</a></footer>
+</body>
+</html>
